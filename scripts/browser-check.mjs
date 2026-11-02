@@ -40,7 +40,7 @@ try{
  await page.route('https://upload.wikimedia.org/test-charging.png',route=>route.fulfill({contentType:'image/png',body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNQqAj4DwADjAHo3Pmz1AAAAABJRU5ErkJggg==','base64')}));
  await page.route('https://router.project-osrm.org/route/**',route=>route.fulfill({json:{code:'Ok',routes:[{distance:139000,duration:7020,geometry:{coordinates:[[21.4254,41.9981],[21.426,41.999],[21.5,42.1]]}}]}}));
  await page.goto('http://127.0.0.1:8080/',{waitUntil:'networkidle',timeout:60000});
- await waitSearch(page);
+ await waitSearch(page);console.log('BASEMAP:',await page.evaluate(()=>document.body.dataset.basemap||'raster-fallback'));
  assert.equal(await page.locator('body').evaluate(el=>el.scrollWidth<=innerWidth),true,'Mobile page overflows horizontally');
  assert.equal(await page.locator('#map').evaluate(el=>el.getBoundingClientRect().height>=innerHeight-1),true,'Map is not fullscreen');
  assert.equal(await page.locator('#results-panel').isVisible(),false,'List should not obstruct initial map');
@@ -147,6 +147,7 @@ try{
  await operatorPage.locator('#list-open').click();await operatorPage.locator('#active-toggle').click();assert.equal(await operatorPage.locator('#active-toggle').getAttribute('aria-pressed'),'true');await operatorPage.locator('#list-open').click();assert.equal(await operatorPage.locator('.station-card').count(),1);
  await operatorPage.locator('.open-station').first().click();await operatorPage.locator('.station-extra>summary').click();await operatorPage.locator('.station-more summary').first().click();await operatorPage.getByRole('button',{name:'Kontrollo disponueshmërinë',exact:true}).click();
  await operatorPage.getByText(/1 nga 2 lidhës të lirë/).waitFor();await operatorPage.getByRole('button',{name:'Kontrollo përsëri',exact:true}).click();assert.equal(liveCalls,1,'Live API must respect two minute cache');
+ await operatorPage.evaluate(()=>{const original=Date.now;Date.now=()=>original()+11*60000;document.dispatchEvent(new Event('visibilitychange'));});await operatorPage.getByText('Status i pakonfirmuar',{exact:true}).waitFor();
  await operatorContext.close();
  const denied=await browser.newContext({...contextOptions,permissions:[]}),deniedPage=await denied.newPage();let routeRequest='';
  await denied.route(/https:\/\/(api\.open-meteo\.com|api\.opentopodata\.org)\//,route=>route.abort());

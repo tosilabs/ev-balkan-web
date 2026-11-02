@@ -325,14 +325,17 @@ function closeStation(restore=false){
  travelController?.abort();travelController=null;markers?.eachLayer(marker=>marker.getElement?.()?.classList.remove('marker-selected'));$('station-panel').hidden=true;document.body.classList.remove('station-open');
  if(restore&&stationFromList)showResults(true);
 }
+function syncStationCondition(){
+ if(!detailStation)return;const state=currentOperating(detailStation);$('station-condition').replaceChildren(text('span',state.label,'tag operating-status operating-'+state.key));
+ if(state.key==='working')$('station-condition').append(text('span',`${state.available} / ${state.total} të përzgjedhur të lirë`,'tag'));
+}
 function syncStationSave(){if(!detailStation)return;const saved=favourite(detailStation);$('station-save').textContent=saved?'♥':'♡';$('station-save').setAttribute('aria-pressed',String(saved));$('station-save').setAttribute('aria-label',(saved?'Hiq nga të ruajturat: ':'Ruaj: ')+detailStation.name);}
 function openStation(station,fromList=false){
  closeStation();detailStation=station;stationFromList=fromList;showResults(false);setTerrainOpen(false);
  document.body.classList.add('station-open');$('station-panel').hidden=false;markers?.eachLayer(marker=>marker.getElement?.()?.classList.toggle('marker-selected',marker.options.stationId===station.id));
  $('station-title').textContent=station.name;$('station-address').textContent=station.address||'Adresa e paspecifikuar';syncStationSave();
  const profile=providerPanel(station),identity=profile.querySelector('.provider-identity');$('station-brand').replaceChildren(identity);
- const state=currentOperating(station);$('station-condition').replaceChildren(text('span',state.label,'tag operating-status operating-'+state.key));
- if(state.key==='working')$('station-condition').append(text('span',`${state.available} / ${state.total} të përzgjedhur të lirë`,'tag'));
+ const state=currentOperating(station);syncStationCondition();
  $('station-hours').replaceChildren(text('span','Orari'),text('strong',station.hours||'I paspecifikuar'));
  $('station-connectors').replaceChildren(connectorPanel(station));
  const extra=document.createElement('details');extra.className='station-extra';extra.append(text('summary','Operatori, foto dhe të gjitha detajet'));
@@ -412,6 +415,7 @@ $('only-active').addEventListener('change',changeActive);
 $('show-unconfirmed').addEventListener('click',()=>{$('only-active').checked=false;changeActive();});
 let operatingSignature='';
 function expireOperating(){
+ if(detailStation&&!$('station-panel').hidden)syncStationCondition();
  const signature=candidates.map(s=>currentOperating(s).key).join(',');
  if(signature!==operatingSignature){operatingSignature=signature;if(!active){if(savedView){stations=$('only-active').checked?workingOnly(favourites):[...favourites];$('result-count').textContent=String(stations.length);renderCards();drawResults(null,null,true);}else applyOperating();}}
 }
