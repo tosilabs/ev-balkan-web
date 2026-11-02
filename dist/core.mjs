@@ -1,4 +1,4 @@
-import {locationInfo,socketCurrent,bestClass,webUrl} from './details.mjs?v=1.4';
+import {locationInfo,socketCurrent,bestClass,webUrl} from './details.mjs?v=1.5';
 export function point(lat,lon){
   if(lat==null||lon==null||lat===''||lon==='')throw Error('Koordinata të pavlefshme.');
   lat=Number(lat);lon=Number(lon);
@@ -32,7 +32,7 @@ export function bounds(line,padding){
 export function settings(raw={}){
   const radius=Number(raw.radius??10),minPower=Number(raw.minPower??0),connector=raw.connector??'both',speed=raw.speed??'all';
   if(!Number.isFinite(radius)||radius<1||radius>100||!Number.isFinite(minPower)||minPower<0||minPower>1000||!['all','both','CCS2','Type 2'].includes(connector)||!['all','slow','medium','fast','ultra','unknown'].includes(speed))throw Error('Rrezja duhet të jetë 1–100 km dhe fuqia 0–1000 kW.');
-  return {radius,minPower,connector,speed,includeUnknown:Boolean(raw.includeUnknown)};
+  return {radius,minPower,connector,speed,activeOnly:Boolean(raw.activeOnly),includeUnknown:Boolean(raw.includeUnknown)};
 }
 function power(value){
   if(!value)return 0;

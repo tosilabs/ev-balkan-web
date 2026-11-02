@@ -1,9 +1,11 @@
-import {point,coordinates,distance,bounds,settings,parseStations,validStationId,destinationUrl,shareData,navigationUrl} from './core.mjs?v=1.4';
-import {localPlaces} from './cities.mjs?v=1.4';
-import {requestJson as json,loadCharging} from './services.mjs?v=1.4';
-import {externalLocationUrl,bestClass,webUrl} from './details.mjs?v=1.4';
-import {photoSection} from './photos.mjs?v=1.4';
-import {finesLiveSection,showSources} from './sources-ui.mjs?v=1.4';
+import {point,coordinates,distance,bounds,settings,parseStations,validStationId,destinationUrl,shareData,navigationUrl} from './core.mjs?v=1.5';
+import {localPlaces} from './cities.mjs?v=1.5';
+import {requestJson as json,loadCharging} from './services.mjs?v=1.5';
+import {externalLocationUrl,bestClass,webUrl} from './details.mjs?v=1.5';
+import {photoSection} from './photos.mjs?v=1.5';
+import {finesLiveSection,showSources} from './sources-ui.mjs?v=1.5';
+import {checkOperating,currentOperating,workingOnly} from './operating.mjs?v=1.5';
+let candidates=[],lastSearch=null;
 const $=id=>document.getElementById(id);
 const storage={get(key,fallback){try{return JSON.parse(localStorage.getItem(key))??fallback;}catch{return fallback;}},set(key,value){try{localStorage.setItem(key,JSON.stringify(value));}catch{toast('Telefoni nuk lejoi ruajtjen lokale. Kërkimi mbetet i përdorshëm.');}}};
 let mode='near',active=null,stations=[],shown=0,savedView=false,selectedStation=null,map=null,markers=null,routeLayer=null,searchMarker=null,picking=false,radiusLayer=null,viewingRadius=10;
@@ -15,6 +17,7 @@ try{restored=settings(storage.get('evb-settings-v2',{radius:10,minPower:0,connec
 $('radius').value=String(restored.radius);if(!$('radius').value)$('radius').value='10';
 $('power').value=String(restored.minPower);if(!$('power').value)$('power').value='0';
 $('connector').value=restored.connector;$('speed').value=restored.speed;$('unknown').checked=restored.includeUnknown;
+$('only-active').checked=restored.activeOnly;syncActive();
 $('destination').value=String(storage.get('evb-query','')).slice(0,300);
 function text(tag,value,className){const node=document.createElement(tag);node.textContent=value;if(className)node.className=className;return node;}
 function toast(message,error=false){$('status').textContent=message;$('status').title=message;$('results-note').textContent=message;$('status').classList.toggle('error',error);}
@@ -27,7 +30,7 @@ $('results-close').addEventListener('click',()=>showResults(false));
 $('status').addEventListener('click',()=>showResults(true));
 $('locate-me').addEventListener('click',()=>{if(active)return;chooseMode('near');showResults(false);$('radius').value='10';$('search-form').requestSubmit();});
 function busy(value){document.body.classList.toggle('busy',value);$('cancel').hidden=!value;
-  document.querySelectorAll('#search-form input,#search-form select,#search-form button[type=submit],.tabs button,#saved-open,#pick-map,#locate-me,#filters-open,#search-open').forEach(el=>el.disabled=value);
+  document.querySelectorAll('#search-form input,#search-form select,#search-form button[type=submit],.tabs button,#saved-open,#pick-map,#locate-me,#filters-open,#search-open,#active-toggle').forEach(el=>el.disabled=value);
 }
 function chooseMode(value){
   mode=value;$('place-field').hidden=value==='near';$('destination').required=value!=='near';
@@ -105,13 +108,13 @@ async function route(start,end,signal){
   throw Error('Itinerari nuk u llogarit. Provo “Një vend” për të gjetur karikues pranë destinacionit.');
 }
 function clearMap(){markers?.clearLayers();if(routeLayer){map.removeLayer(routeLayer);routeLayer=null;}if(radiusLayer){map.removeLayer(radiusLayer);radiusLayer=null;}}
-function drawResults(line,center){
+function drawResults(line,center,preserve=false){
   if(!map)return;clearMap();
   if(line){routeLayer=L.polyline(line.map(p=>[p.lat,p.lon]),{color:'#78964e',weight:5,opacity:.85}).addTo(map);}
   const points=[];
   stations.forEach((station,i)=>{const p=station.point;points.push([p.lat,p.lon]);
-    const speed=station.speed||bestClass(station.connections||[]),label=`${i+1}. ${station.name} · ${speed.label}`;
-    const icon=L.divIcon({className:'numbered-marker',html:`<span class="map-marker speed-${speed.key}">${i+1}</span>`,iconSize:[34,34],iconAnchor:[17,17]});
+    const speed=station.speed||bestClass(station.connections||[]),label=`${i+1}. ${station.name} · ${speed.label} · ${currentOperating(station).label}`;
+    const icon=L.divIcon({className:'numbered-marker',html:`<span class="map-marker speed-${speed.key} operating-${currentOperating(station).key}">${i+1}</span>`,iconSize:[34,34],iconAnchor:[17,17]});
     const marker=L.marker([p.lat,p.lon],{icon,title:label,alt:label}).addTo(markers);
     marker.on('click',()=>{showResults(true);
       if(i>=shown){shown=Math.min(stations.length,Math.ceil((i+1)/12)*12);renderCards();}
@@ -119,6 +122,7 @@ function drawResults(line,center){
     });
   });
   if(center&&!line)radiusLayer=L.circle([center.lat,center.lon],{radius:viewingRadius*1000,color:'#5a8152',weight:1,dashArray:'5 6',fillColor:'#b0d471',fillOpacity:.035,interactive:false}).addTo(map);
+  if(preserve)return;
   if(line?.length)map.fitBounds(L.latLngBounds(line.map(p=>[p.lat,p.lon])),{padding:[28,28]});
   else if(radiusLayer)map.fitBounds(radiusLayer.getBounds(),{paddingTopLeft:[35,140],paddingBottomRight:[35,150]});
   else if(points.length)map.fitBounds(L.latLngBounds(points),{padding:[45,45],maxZoom:13});
@@ -128,7 +132,7 @@ function toggleSaved(station){
   if(favourite(station))favourites=favourites.filter(s=>s.id!==station.id);
   else{if(favourites.length>=200){toast('Mund të ruash deri në 200 karikues. Hiq ndonjërin për të shtuar të tjerë.');return;}favourites.push(station);}
   storage.set('evb-favourites',favourites);savedCount();
-  if(savedView){stations=[...favourites];shown=Math.min(stations.length,Math.max(shown,12));$('result-count').textContent=String(stations.length);drawResults(null,null);}
+  if(savedView){stations=$('only-active').checked?workingOnly(favourites):[...favourites];shown=Math.min(stations.length,Math.max(shown,12));$('result-count').textContent=String(stations.length);drawResults(null,null);}
   renderCards();
 }
 function openShare(station){
@@ -173,7 +177,7 @@ function locationDetails(station){
 }
 function renderCards(){
   const container=$('results');container.replaceChildren();
-  if(!stations.length){container.append(text('p',savedView?'Nuk ke ende karikues të ruajtur. Shtyp zemrën në një rezultat për ta ruajtur.':'Nuk u gjetën karikues me këta filtra. Rrit rrezen, ul fuqinë minimale ose përfshi lidhës të paspecifikuar.','empty-note'));}
+  if(!stations.length){container.append(text('p',savedView?'Nuk ke ende karikues të ruajtur. Shtyp zemrën në një rezultat për ta ruajtur.':$('only-active').checked?'Nuk ka pika të konfirmuara në punë me këta filtra. Pikat pa status aktual nuk përfshihen.':'Nuk u gjetën karikues me këta filtra. Rrit rrezen, ul fuqinë minimale ose përfshi lidhës të paspecifikuar.','empty-note'));}
   stations.slice(0,shown).forEach((station,i)=>{
     const card=document.createElement('article');card.className='station-card';card.dataset.stationIndex=String(i);
     const top=document.createElement('div');top.className='card-top';top.append(text('span',String(i+1),'station-number'));
@@ -182,8 +186,10 @@ function renderCards(){
     const tags=document.createElement('div');tags.className='station-tags';
     for(const value of [station.connectors,station.power?`${station.power} kW`:'Fuqia e panjohur',savedView?'Nga kërkimi i ruajtur':`${station.distance.toFixed(1)} km`])tags.append(text('span',value,station.unknown||station.compatible===false?'tag unknown':'tag'));
     const speed=station.speed||bestClass(station.connections||[]);card.querySelector('.station-number').classList.add('category-'+speed.key);tags.append(text('span',speed.label,'tag category-'+speed.key));
+    const operating=currentOperating(station);tags.append(text('span',operating.label,'tag operating-status operating-'+operating.key));
     card.append(tags);
     const detail=document.createElement('div');detail.className='station-details';detail.append(text('p',station.finesId?'Disponueshmëria: kontrolloje te detajet Fines':'Disponueshmëria: e panjohur'),text('p',station.price?`Tarifa e raportuar: ${station.price}`:'Çmimi: i panjohur'));
+    detail.append(text('p',operating.observedAt?'Raportuar nga Fines: '+new Date(operating.observedAt).toLocaleString('sq-AL'):operating.reason));
     if(!station.unknown&&station.compatible===false)detail.append(text('p','Lidhësi i regjistruar nuk përputhet me Audi e-tron.'));
     if(station.hours)detail.append(text('p',`Orari i raportuar: ${station.hours}`));
     const source=text('a','Burimi: '+(station.sourceName||'OpenStreetMap')+' ↗');source.href=webUrl(station.source)||`https://www.openstreetmap.org/${station.id}`;source.target='_blank';source.rel='noopener';detail.append(source);card.append(detail,locationDetails(station));
@@ -193,21 +199,47 @@ function renderCards(){
     card.append(links);container.append(card);
   });
   $('load-more').hidden=shown>=stations.length;
+  $('show-unconfirmed').hidden=savedView||!$('only-active').checked||stations.length>0;
 }
+function syncActive(){$('active-toggle').setAttribute('aria-pressed',String($('only-active').checked));}
+function applyOperating(preserve=true){
+ syncActive();if(!lastSearch||savedView)return;
+ stations=$('only-active').checked?workingOnly(candidates):candidates;shown=Math.min(12,stations.length);
+ const {requestMode,routeKm,line,center}=lastSearch;
+ $('results-title').textContent=$('only-active').checked?'Të konfirmuar në punë':requestMode==='route'?'Karikues përgjatë rrugës':requestMode==='place'?'Karikues pranë vendit':'Karikues pranë teje';
+ $('results-eyebrow').textContent=requestMode==='route'?`ITINERAR ${routeKm.toFixed(0)} KM`:'NDALESA TË MUNDSHME';
+ $('result-count').textContent=String(stations.length);$('result-count').hidden=false;
+ const counts={working:0,offline:0,unknown:0};for(const s of candidates)counts[currentOperating(s).key]++;
+ toast(`${counts.working} në punë · ${counts.offline} jashtë shërbimit · ${counts.unknown} të pakonfirmuar. Status aktual nga Fines, kur ofrohet. Në punë mund të jetë edhe i zënë. ${requestMode==='route'?'Distanca nga vija e itinerarit, jo devijimi rrugor.':'Distanca në vijë ajrore.'}`);
+ renderCards();drawResults(line,center,preserve);
+}
+function changeActive(){
+ syncActive();const options=storage.get('evb-settings-v2',{});storage.set('evb-settings-v2',{...options,activeOnly:$('only-active').checked});
+ applyOperating();
+}
+$('active-toggle').addEventListener('click',()=>{if(active)return;$('only-active').checked=!$('only-active').checked;changeActive();if(!lastSearch||savedView){savedView=false;$('search-form').requestSubmit();}});
+$('only-active').addEventListener('change',changeActive);
+$('show-unconfirmed').addEventListener('click',()=>{$('only-active').checked=false;changeActive();});
+let operatingSignature='';
+function expireOperating(){
+ const signature=candidates.map(s=>currentOperating(s).key).join(',');
+ if(signature!==operatingSignature){operatingSignature=signature;if(!active){if(savedView){stations=$('only-active').checked?workingOnly(favourites):[...favourites];$('result-count').textContent=String(stations.length);renderCards();drawResults(null,null,true);}else applyOperating();}}
+}
+setInterval(expireOperating,30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)expireOperating();});
 $('load-more').addEventListener('click',()=>{shown=Math.min(stations.length,shown+12);renderCards();});
 $('saved-open').addEventListener('click',()=>{
-  savedView=true;stations=[...favourites];shown=Math.min(12,stations.length);$('results-title').textContent='Karikuesit e tu';$('results-eyebrow').textContent='TË RUAJTURAT';$('result-count').textContent=String(stations.length);$('result-count').hidden=false;
+  savedView=true;stations=$('only-active').checked?workingOnly(favourites):[...favourites];shown=Math.min(12,stations.length);$('results-title').textContent='Karikuesit e tu';$('results-eyebrow').textContent='TË RUAJTURAT';$('result-count').textContent=String(stations.length);$('result-count').hidden=false;
   toast('Të ruajtura në këtë shfletues. Tarifat dhe detajet mund të jenë vjetruar; distancat nuk rillogariten.');renderCards();drawResults(null,null);showResults(true);
 });
 $('cancel').addEventListener('click',()=>{active?.abort();active=null;busy(false);$('results-title').textContent='Kërkimi u anulua';toast('Mund të nisësh një kërkim të ri.');});
 $('search-form').addEventListener('submit',async event=>{
   event.preventDefault();if(active)return;
-  let options;try{options=settings({radius:$('radius').value,minPower:$('power').value,connector:$('connector').value,speed:$('speed').value,includeUnknown:$('unknown').checked});}catch(error){toast(error.message,true);return;}
+  let options;try{options=settings({radius:$('radius').value,minPower:$('power').value,connector:$('connector').value,speed:$('speed').value,activeOnly:$('only-active').checked,includeUnknown:$('unknown').checked});}catch(error){toast(error.message,true);return;}
   const query=$('destination').value.trim();if(mode!=='near'&&!query){toast('Vendos një qytet, adresë ose koordinata.',true);return;}
   storage.set('evb-settings-v2',options);if(query)storage.set('evb-query',query);
   if($('search-dialog').open)$('search-dialog').close();showResults(false);viewingRadius=options.radius;
   $('radius-badge').textContent=`${options.radius} km`;$('filter-badge').textContent=options.connector==='all'?'Të gjithë':options.connector==='both'?'Për Audi':options.connector;
-  const controller=new AbortController();active=controller;busy(true);savedView=false;stations=[];shown=0;clearMap();$('results').replaceChildren();$('load-more').hidden=true;$('result-count').hidden=true;$('results-title').textContent='Duke gjetur ndalesën tënde…';
+  const controller=new AbortController();active=controller;busy(true);savedView=false;lastSearch=null;candidates=[];stations=[];shown=0;clearMap();$('results').replaceChildren();$('load-more').hidden=true;$('result-count').hidden=true;$('results-title').textContent='Duke gjetur ndalesën tënde…';
   const requestMode=mode;
   try{
     let center,line=null,routeKm=null;
@@ -217,14 +249,14 @@ $('search-form').addEventListener('submit',async event=>{
     if(controller.signal.aborted)return;
     toast('Duke ngarkuar regjistrin e karikuesve…');const data=await loadCharging(bounds(line??[center],options.radius),controller.signal);
     if(active!==controller)return;
-    stations=parseStations(data,options,center,line);const fresh=new Map(stations.map(s=>[s.id,s]));if(favourites.some(s=>fresh.has(s.id))){favourites=favourites.map(s=>fresh.get(s.id)||s);storage.set('evb-favourites',favourites);}
-    shown=Math.min(12,stations.length);
-    $('results-title').textContent=requestMode==='route'?'Karikues përgjatë rrugës':requestMode==='place'?'Karikues pranë vendit':'Karikues pranë teje';
-    $('results-eyebrow').textContent=requestMode==='route'?`ITINERAR ${routeKm.toFixed(0)} KM`:'NDALESA TË MUNDSHME';$('result-count').textContent=String(stations.length);$('result-count').hidden=false;
-    const basis=requestMode==='route'?'Distanca në kartë është largësia nga vija e itinerarit, jo devijimi rrugor. Rruga e Audi-t mund të ndryshojë.':'Distanca është në vijë ajrore, jo largësi rrugore.';
-    const registry=data.fetchedAt?` Regjistri u shkarkua më ${new Date(data.fetchedAt).toLocaleDateString('sq-AL')}.`:'';
-    toast(`${basis}${registry} Lidhësit e paspecifikuar, tarifat dhe orari duhen kontrolluar para nisjes. Statusi kërkon kontroll te operatori; për Fines mund të kontrollohet në detaje.`);
-    renderCards();drawResults(line,center);
+    toast('Duke kontrolluar statusin te operatorët që ofrojnë të dhëna aktuale…');
+    const checked=await checkOperating(parseStations(data,options,center,line),{signal:controller.signal,minPower:options.minPower});
+    if(active!==controller)return;
+    candidates=checked;lastSearch={line,center,requestMode,routeKm};
+    const fresh=new Map(candidates.map(s=>[s.id,s]));
+    if(favourites.some(s=>fresh.has(s.id))){favourites=favourites.map(s=>fresh.get(s.id)||s);storage.set('evb-favourites',favourites);}
+    applyOperating(false);
+
   }catch(error){
     if(active!==controller)return;
     $('results-title').textContent='Provo një kërkim tjetër';
