@@ -1,8 +1,16 @@
-# EV Balkan Web — versioni 1
+# EV Balkan Web — versioni 1.1
 
 **Gjendja:** versioni burimor është përgatitur dhe kontrollet lokale kaluan. Kontrollo ekzekutimin më të fundit te Actions për gjendjen e publikimit. Nëse Pages nuk është aktivizuar ende, ndiq hapat te seksioni GitHub Pages.
 
 Web-faqe në shqip për kërkim karikuesish në Ballkan, e përshtatur për telefon dhe Audi e-tron evropian 2023. Nuk kërkon APK, llogari ose çelës API. Burimi i karikuesve është OpenStreetMap, jo lista e plotë e operatorëve.
+
+## Rregullimi i pritjes së gjatë (v1.1)
+
+Kërkimet brenda zonës 34°–48.5° N / 12°–30° E përdorin një kopje publike të regjistrit OpenStreetMap të përgatitur gjatë publikimit. Telefoni shkarkon një skedar nga e njëjta faqe; nuk pret që Overpass të kryejë një kërkim të ri për çdo përdorues. Data e shkarkimit shfaqet pranë rezultateve dhe nuk nënkupton verifikim fizik të stacioneve.
+
+GitHub Actions tenton rifreskimin çdo ditë në 04:17 UTC dhe gjatë publikimeve. Kur burimet nuk përgjigjen, ruan datën e kopjes së mëparshme të publikuar; nëse nuk ekziston asnjë kopje e vlefshme, publikimi ndalet. Jashtë kësaj zone ka kërkim rezervë online. Disa qytete kryesore të Ballkanit mund të zgjidhen pa Photon. Itinerari ka dy shërbime rezervë, por ende kërkon internet.
+
+Për zhvillim lokal, ekzekuto `node scripts/update-charging.mjs` përpara serverit që të përgatitësh regjistrin real. Skedari gjenerohet në `dist/data/charging-balkans.json` dhe nuk ndiqet në Git.
 
 ## Funksionet
 
@@ -55,6 +63,6 @@ Vendndodhja kërkohet vetëm kur nis kërkimin përkatës. Qyteti/adresa dërgoh
 
 ## Verifikimi
 
-Testet kontrollojnë koordinatat, distancat, korridorin, filtrat për lidhës/fuqi, përjashtimin e karikuesve privatë, regjistrat e dyfishtë, qendrat e objekteve dhe lokacionin e ndarë. Kontrollet e sintaksës dhe testet lokale nuk zëvendësojnë provën në telefon. Në këtë mjedis nuk ishte e disponueshme prova në shfletues, lidhja me shërbimet reale ose publikimi.
+Testet kontrollojnë koordinatat, distancat, korridorin, filtrat për lidhës/fuqi, përjashtimin e karikuesve privatë, regjistrat e dyfishtë, qendrat e objekteve dhe lokacionin e ndarë. Kontrollet e sintaksës dhe testet lokale nuk zëvendësojnë provën në telefon. GitHub Actions kryen prova në Chromium. Skenarët e ndërfaqes përdorin fixture të dallueshme testimi; një provë më vete kërkon karikues realë nga regjistri i shkarkuar pranë Shkupit, me Photon/Overpass të bllokuar në shfletues për të verifikuar pavarësinë e kërkimit lokal. GPS fizik dhe dorëzimi në myAudi/MMI mbeten prova në pajisjen e përdoruesit.
 
 Lista e provës në telefon: GPS i lejuar/refuzuar; tri kërkimet; qytete me emër të njëjtë; filtër CCS2 100 kW+; prekje në hartë; anulim gjatë kërkimit; ruajtje pas rifreskimit; ndarje myAudi; alternativat e kopjimit dhe Google Maps; gabim rrjeti; ekrane 360 px.

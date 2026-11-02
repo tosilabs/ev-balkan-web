@@ -1,4 +1,6 @@
 import {point,coordinates,distance,bounds,settings,parseStations,destinationUrl,shareData,navigationUrl} from './core.mjs';
+import {localPlaces} from './cities.mjs';
+import {requestJson as json,loadCharging} from './services.mjs';
 const $=id=>document.getElementById(id);
 const storage={get(key,fallback){try{return JSON.parse(localStorage.getItem(key))??fallback;}catch{return fallback;}},set(key,value){try{localStorage.setItem(key,JSON.stringify(value));}catch{toast('Telefoni nuk lejoi ruajtjen lokale. Kërkimi mbetet i përdorshëm.');}}};
 let mode='near',active=null,stations=[],shown=0,savedView=false,selectedStation=null,map=null,markers=null,routeLayer=null,searchMarker=null,picking=false;
@@ -48,12 +50,6 @@ function mapInit(){
 }
 mapInit();
 $('pick-map').addEventListener('click',()=>{if(!map)return;picking=!picking;$('pick-map').classList.toggle('active',picking);$('pick-map').textContent=picking?'Prek hartën · Anulo':'⌖ Zgjidh pikë në hartë';if(picking)toast('Prek një pikë në hartë. Pastaj nis kërkimin.');});
-async function json(url,{signal,method='GET',body,headers={},timeout=35000}={}){
-  const controller=new AbortController();const abort=()=>controller.abort(signal?.reason);signal?.addEventListener('abort',abort,{once:true});
-  if(signal?.aborted)controller.abort();const timer=setTimeout(()=>controller.abort(new DOMException('Shërbimi vonoi përgjigjen. Provo përsëri.','TimeoutError')),timeout);
-  try{const response=await fetch(url,{signal:controller.signal,method,body,headers});if(!response.ok)throw Error(response.status===429?'Shërbimi është i ngarkuar. Prit pak dhe provo përsëri.':`Shërbimi nuk u përgjigj si duhet (${response.status}).`);return await response.json();}
-  finally{clearTimeout(timer);signal?.removeEventListener('abort',abort);}
-}
 function locate(signal){
   return new Promise((resolve,reject)=>{
     if(!navigator.geolocation){reject(Error('Vendndodhja nuk mbështetet. Përdor kërkimin sipas vendit.'));return;}
@@ -67,10 +63,13 @@ function locate(signal){
 }
 async function place(query,signal){
   const p=coordinates(query);if(p)return p;
-  const data=await json(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5`,{signal,timeout:15000});
-  const candidates=(data.features??[]).flatMap(f=>{
+  let candidates=localPlaces(query);
+  if(!candidates.length){
+  const data=await json(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5`,{signal,timeout:10000});
+  candidates=(data.features??[]).flatMap(f=>{
     try{const c=f.geometry.coordinates,p=point(c[1],c[0]),t=f.properties;return [{point:p,label:[t.name,t.street,t.city,t.state,t.country].filter((v,i,a)=>v&&a.indexOf(v)===i).join(', ')}];}catch{return [];}
   });
+  }
   if(!candidates.length)throw Error('Vendi nuk u gjet. Shto shtetin ose vendos koordinatat.');
   return new Promise((resolve,reject)=>{
     const dialog=$('place-dialog'),list=$('place-options');list.replaceChildren();let selected=false;
@@ -82,23 +81,16 @@ async function place(query,signal){
   });
 }
 async function route(start,end,signal){
-  const data=await json(`https://router.project-osrm.org/route/v1/driving/${start.lon},${start.lat};${end.lon},${end.lat}?overview=full&geometries=geojson`,{signal});
-  const r=data.routes?.[0];if(data.code!=='Ok'||!r?.geometry?.coordinates?.length)throw Error('Itinerari nuk u gjet. Provo pika të tjera.');
-  if(r.distance>1500000)throw Error('Versioni i parë mbështet itinerare deri në 1500 km. Kërko pjesë të rrugës.');
-  return {line:r.geometry.coordinates.map(c=>point(c[1],c[0])),km:r.distance/1000};
-}
-async function charging(box,signal){
-  const query=`[out:json][timeout:25][maxsize:16777216];nwr["amenity"="charging_station"](${box.join(',')});out tags center;`;
-  let lastError;
-  for(const endpoint of ['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter']){
+  const path=`/route/v1/driving/${start.lon},${start.lat};${end.lon},${end.lat}?overview=full&geometries=geojson`;
+  for(const base of ['https://router.project-osrm.org','https://routing.openstreetmap.de/routed-car']){
     try{
-      const data=await json(endpoint,{method:'POST',body:new URLSearchParams({data:query}),signal,timeout:35000});
-      if(data.remark)throw Error('Burimi nuk e përfundoi kërkimin. Provo rreze më të vogël.');
-      if(!Array.isArray(data.elements))throw Error('Përgjigje e pavlefshme nga burimi i karikuesve.');
-      return data;
-    }catch(error){if(signal.aborted)throw error;lastError=error;}
+      const data=await json(base+path,{signal,timeout:12000});
+      const r=data.routes?.[0];if(data.code!=='Ok'||!r?.geometry?.coordinates?.length)continue;
+      if(r.distance>1500000)throw Error('Versioni i parë mbështet itinerare deri në 1500 km. Kërko pjesë të rrugës.');
+      return {line:r.geometry.coordinates.map(c=>point(c[1],c[0])),km:r.distance/1000};
+    }catch(error){if(signal.aborted)throw error;if(error.message.includes('1500 km'))throw error;}
   }
-  throw lastError??Error('Burimi i karikuesve nuk është i arritshëm. Provo më vonë.');
+  throw Error('Itinerari nuk u llogarit. Provo “Një vend” për të gjetur karikues pranë destinacionit.');
 }
 function clearMap(){markers?.clearLayers();if(routeLayer){map.removeLayer(routeLayer);routeLayer=null;}}
 function drawResults(line,center){
@@ -180,13 +172,14 @@ $('search-form').addEventListener('submit',async event=>{
     else{toast('Duke kërkuar destinacionin…');center=await place(query,controller.signal);}
     if(requestMode==='route'){toast('Duke marrë vendndodhjen dhe itinerarin…');const start=await locate(controller.signal);const r=await route(start,center,controller.signal);line=r.line;routeKm=r.km;}
     if(controller.signal.aborted)return;
-    toast('Duke kërkuar karikuesit në OpenStreetMap…');const data=await charging(bounds(line??[center],options.radius),controller.signal);
+    toast('Duke ngarkuar regjistrin e karikuesve…');const data=await loadCharging(bounds(line??[center],options.radius),controller.signal);
     if(active!==controller)return;
     stations=parseStations(data,options,center,line);shown=Math.min(12,stations.length);
     $('results-title').textContent=requestMode==='route'?'Karikues përgjatë rrugës':requestMode==='place'?'Karikues pranë vendit':'Karikues pranë teje';
     $('results-eyebrow').textContent=requestMode==='route'?`ITINERAR ${routeKm.toFixed(0)} KM`:'NDALESA TË MUNDSHME';$('result-count').textContent=`${stations.length} rezultate`;$('result-count').hidden=false;
     const basis=requestMode==='route'?'Distanca në kartë është largësia nga vija e itinerarit, jo devijimi rrugor. Rruga e Audi-t mund të ndryshojë.':'Distanca është në vijë ajrore, jo largësi rrugore.';
-    toast(`${basis} Lidhësit e paspecifikuar, tarifat dhe orari duhen kontrolluar para nisjes. Statusi i lirë/i zënë nuk ofrohet.`);
+    const registry=data.fetchedAt?` Regjistri u shkarkua më ${new Date(data.fetchedAt).toLocaleDateString('sq-AL')}.`:'';
+    toast(`${basis}${registry} Lidhësit e paspecifikuar, tarifat dhe orari duhen kontrolluar para nisjes. Statusi i lirë/i zënë nuk ofrohet.`);
     renderCards();drawResults(line,center);
   }catch(error){
     if(active!==controller)return;
