@@ -77,6 +77,15 @@ try{
  assert.equal(await page.locator('#result-count').innerText(),'230');
  await mkdir('browser-results',{recursive:true});await page.screenshot({path:'browser-results/fullscreen-mobile.png'});
  await page.setViewportSize({width:1440,height:1000});await page.screenshot({path:'browser-results/fullscreen-desktop.png'});
+ let captured;
+ const capturedRequest=new Promise(resolve=>captured=resolve);
+ await page.route('**/data/charging-balkans.json',route=>captured(route));
+ await page.locator('#locate-me').click();
+ const pending=await capturedRequest;
+ await page.getByRole('button',{name:'Anulo kërkimin',exact:true}).click();
+ await page.waitForFunction(()=>!document.body.classList.contains('busy'));
+ assert.match(await page.locator('#status').innerText(),/Mund të nisësh një kërkim të ri/);
+ await pending.abort().catch(()=>{});
  assert.deepEqual(errors,[],'Browser JavaScript errors');
  const live=await browser.newContext(contextOptions),livePage=await live.newPage();
  await livePage.route(/https:\/\/(photon\.komoot\.io|overpass-api\.de|overpass\.private\.coffee)\//,route=>route.abort());

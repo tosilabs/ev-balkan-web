@@ -18,6 +18,7 @@
 <div id="area-badge" class="area-badge"><span class="dot"></span><span id="radius-badge">10 km</span><span class="badge-divider">·</span><span id="filter-badge">Të gjithë</span></div>
 <div class="bottom-controls"><button id="filters-open" class="dock-button" aria-haspopup="dialog" aria-controls="search-dialog">☷ Filtrat</button><button id="list-open" class="dock-button main-dock" aria-controls="results-panel" aria-expanded="false">ϟ Karikuesit <span id="result-count" class="count" hidden></span></button></div>
 <button id="status" class="status" role="status" aria-live="polite" aria-controls="results-panel">Duke përgatitur hartën…</button>
+<button id="cancel" class="map-cancel" type="button" aria-label="Anulo kërkimin" hidden>×</button>
 <section id="results-panel" class="results-section" aria-labelledby="results-title" hidden><div class="sheet-handle" aria-hidden="true"></div><div class="results-heading"><div><p class="eyebrow" id="results-eyebrow">KARIKUES NË HARTË</p><h2 id="results-title">Karikuesit pranë teje</h2></div><button id="results-close" class="close" aria-label="Mbyll listën">×</button></div><p id="results-note" class="field-note"></p><div id="results" class="cards"></div><button id="load-more" class="secondary" hidden>Shfaq më shumë</button></section>
 </main>
 <dialog id="search-dialog" class="search-sheet"><div class="dialog-heading"><h2>Ku dëshiron të karikosh?</h2><button class="close" data-close="search-dialog" aria-label="Mbyll kërkimin">×</button></div><aside class="search-panel" aria-label="Kërko karikues">
@@ -28,7 +29,7 @@
 <div class="filter-row"><div><label id="radius-label" for="radius">RREZJA</label><select id="radius"><option value="5">5 km</option><option value="10" selected>10 km</option><option value="25">25 km</option><option value="50">50 km</option><option value="100">100 km</option></select></div><div><label for="power">FUQIA MINIMALE</label><select id="power"><option value="0">Çfarëdo fuqie</option><option value="22">22 kW+</option><option value="50">50 kW+</option><option value="100">100 kW+</option><option value="150">150 kW+</option></select></div></div>
 <label for="connector">LIDHËSI</label><select id="connector"><option value="all">Të gjithë lidhësit</option><option value="both">CCS2 + Type 2 · Audi e-tron</option><option value="CCS2">Vetëm CCS2 · DC</option><option value="Type 2">Vetëm Type 2 · AC</option></select>
 <label class="checkbox"><input id="unknown" type="checkbox" checked><span>Përfshi lidhës të paspecifikuar <small>Kontrollo përputhshmërinë para nisjes.</small></span></label>
-<button id="search" class="primary" type="submit"><span>Gjej karikues</span><span aria-hidden="true">↗</span></button><button id="cancel" class="quiet cancel" type="button" hidden>Anulo kërkimin</button>
+<button id="search" class="primary" type="submit"><span>Gjej karikues</span><span aria-hidden="true">↗</span></button>
 </form>
 <p class="field-note">Për Audi e-tron përdor CCS2 ose Type 2. Çmimi dhe disponueshmëria mund të mos jenë të njohura.</p></aside></dialog>
 <dialog id="place-dialog"><div class="dialog-heading"><h2>Zgjidh vendin</h2><button class="close" data-close="place-dialog" aria-label="Mbyll">×</button></div><p>Kontrollo qytetin dhe shtetin përpara se të vazhdosh.</p><div id="place-options"></div></dialog>
