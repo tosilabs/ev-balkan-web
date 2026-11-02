@@ -1,19 +1,18 @@
-import json,urllib.request,re,concurrent.futures,collections
-from pathlib import Path
-
-def get(url):
- req=urllib.request.Request(url,headers={'User-Agent':'Udhembare/2.2 public-source-coverage-check'})
- with urllib.request.urlopen(req,timeout=25) as r:return r.read(45*1024*1024).decode('utf-8-sig')
+import json,urllib.request,urllib.error,concurrent.futures
+URLS=[
+ ('evaround-skopje','https://evaround.me/v1/download?format=json&bbox=21.2,41.8,21.7,42.2'),
+ ('evaround-prishtina','https://evaround.me/v1/download?format=json&bbox=21.0,42.4,21.4,42.8'),
+ ('evaround-sofia','https://evaround.me/v1/download?format=json&bbox=23.1,42.5,23.5,42.9'),
+ ('evaround-london','https://evaround.me/v1/download?format=json&bbox=-0.14,51.49,-0.10,51.53'),
+ ('india-api-skopje','https://ev-charging-stations-api.vercel.app/v1/stations/near?lat=41.9981&lng=21.4254&radius=100&limit=100')]
 def inspect(item):
  name,url=item
  try:
-  raw=get(url)
-  if name=='evn':
-   return {'source':name,'bytes':len(raw),'snippet':raw[max(0,raw.find('Main road')-250):raw.find('Main road')+700], 'scripts':re.findall(r'<script[^>]+src=[\"\']([^\"\']+)',raw),'iframes':re.findall(r'<iframe[^>]+src=[\"\']([^\"\']+)',raw),'coordinates':re.findall(r'.{0,80}(?:[Ll]atitude|[Ll]ongitude|[Ll]at[Ll]ng|maps/embed|new google|data-lat).{0,200}',raw)[:12], 'mapLinks':re.findall(r'href=[\"\']([^\"\']*(?:maps.app.goo.gl|goo.gl/maps|google.com/maps)[^\"\']*)',raw)[:5], 'tableSample':[re.sub('<[^>]+>',' ',raw[raw.find('Main road'):raw.find('Main road')+1000])]}
-  data=json.loads(raw)
-  if name=='published':return {'source':name,'count':len(data['elements']),'sources':data.get('sources'),'report':data.get('mergeReport')}
-  entries=data if isinstance(data,list) else data.get('stations',data.get('data',next((v for v in data.values() if isinstance(v,list)),[])))
-  return {'source':name,'rootkeys':list(data)[:15] if isinstance(data,dict) else 'array','count':len(entries),'first':entries[:2]}
- except Exception as e:return {'source':name,'error':str(e)}
-with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
- for r in pool.map(inspect,[('evn','https://emobility.evn.mk/charging-stations/ChargerMap.aspx?lang=en'),('blokvolt','https://www.blokvolt.rs/assets/map/punjaci.json'),('blokvolt-xk','https://blokvolt.com/assets/map/xk/stanice.json'),('published','https://tosilabs.github.io/ev-balkan-web/data/charging-balkans.json')]):print('SOURCE_AUDIT '+json.dumps(r,ensure_ascii=False),flush=True)
+  req=urllib.request.Request(url,headers={'User-Agent':'Udhembare public data compatibility review/2026-11-02','Accept':'application/json'})
+  with urllib.request.urlopen(req,timeout=25) as response:
+   raw=response.read(40*1024*1024);status=response.status;cors=response.headers.get('Access-Control-Allow-Origin')
+  data=json.loads(raw);items=data.get('items',data.get('data',[]));result={'name':name,'status':status,'cors':cors,'keys':list(data),'count':len(items) if isinstance(items,list) else None,'meta':data.get('meta'),'attribution':data.get('attribution'),'license':data.get('license'),'updated':data.get('updated'),'first':items[0] if isinstance(items,list) and items else None}
+  print('REVIEW_API_CHECK '+json.dumps(result,ensure_ascii=False),flush=True)
+ except urllib.error.HTTPError as e:print('REVIEW_API_CHECK '+json.dumps({'name':name,'status':e.code,'error':e.read(800).decode('utf-8',errors='replace')}),flush=True)
+ except Exception as e:print('REVIEW_API_CHECK '+json.dumps({'name':name,'error':str(e)}),flush=True)
+with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:list(pool.map(inspect,URLS))
