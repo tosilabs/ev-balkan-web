@@ -1,0 +1,38 @@
+name: Audit public charging coverage
+on:
+  push:
+    branches: [data/charging-coverage]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: openchargemap/ocm-export
+          ref: main
+          path: .source-cache/ocm-export
+          persist-credentials: false
+          sparse-checkout: |
+            data/referencedata.json
+            data/AL
+            data/BA
+            data/BG
+            data/GR
+            data/HR
+            data/ME
+            data/MK
+            data/RO
+            data/RS
+            data/SI
+            data/XK
+            data/AT
+            data/HU
+            data/IT
+            data/TR
+          sparse-checkout-cone-mode: false
+      - run: python3 scripts/source-coverage-audit.py
