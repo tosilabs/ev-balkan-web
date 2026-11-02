@@ -1,8 +1,14 @@
-# EV Balkan Web — versioni 1.1
+# EV Balkan Web — versioni 1.2
 
 **Gjendja:** versioni burimor është përgatitur dhe kontrollet lokale kaluan. Kontrollo ekzekutimin më të fundit te Actions për gjendjen e publikimit. Nëse Pages nuk është aktivizuar ende, ndiq hapat te seksioni GitHub Pages.
 
 Web-faqe në shqip për kërkim karikuesish në Ballkan, e përshtatur për telefon dhe Audi e-tron evropian 2023. Nuk kërkon APK, llogari ose çelës API. Burimi i karikuesve është OpenStreetMap, jo lista e plotë e operatorëve.
+
+## Pamja e hartës (v1.2)
+
+Harta zë të gjithë ekranin. Kërkimi dhe filtrat hapen në një dialog; lista hapet vetëm kur shtypet “Karikuesit” ose një shenjë në hartë. Kërkimi pranë vendndodhjes nis automatikisht dhe kërkon lejen e shfletuesit. Si parazgjedhje rrezja është 10 km, fuqia çfarëdo dhe lidhësit të gjithë. Filtrat e versioneve të vjetra nuk e ngushtojnë pamjen e parë të re.
+
+Të gjithë karikuesit publikë në regjistër brenda rrezes së kërkuar vendosen në hartë; kufiri i mëparshëm prej 200 shenjash është hequr. Lista lexohet në faqe me 12 karta, pa kufizuar shenjat në hartë. Lidhësit që nuk përputhen me e-tron dallohen në detaje. Regjistri nuk pretendon të përmbajë çdo karikues fizik.
 
 ## Rregullimi i pritjes së gjatë (v1.1)
 

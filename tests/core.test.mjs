@@ -62,3 +62,8 @@ test('Shared destinations preserve exact coordinates and do not claim delivery',
   assert.match(navigationUrl(station,'osmand'),/finish=41.9981,21.4254/);
   assert.match(navigationUrl(station,'waze'),/ll=41.9981,21.4254&navigate=yes/);
 });
+test('All-connectors mode includes all registered public connector types without a result cap',()=>{
+ const rows=parse(Array.from({length:230},(_,i)=>node(i+1,{'socket:chademo':'1','socket:chademo:output':'50 kW'})),settings({connector:'all',includeUnknown:true}));
+ assert.equal(rows.length,230);assert.equal(rows[0].connectors,'CHAdeMO');assert.equal(rows[0].compatible,false);
+ assert.equal(parse([node(1,{'socket:chademo':'1'})],settings({connector:'both'})).length,0);
+});

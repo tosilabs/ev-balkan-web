@@ -30,7 +30,7 @@ export function bounds(line,padding){
 }
 export function settings(raw={}){
   const radius=Number(raw.radius??10),minPower=Number(raw.minPower??0),connector=raw.connector??'both';
-  if(!Number.isFinite(radius)||radius<1||radius>100||!Number.isFinite(minPower)||minPower<0||minPower>1000||!['both','CCS2','Type 2'].includes(connector))throw Error('Rrezja duhet të jetë 1–100 km dhe fuqia 0–1000 kW.');
+  if(!Number.isFinite(radius)||radius<1||radius>100||!Number.isFinite(minPower)||minPower<0||minPower>1000||!['all','both','CCS2','Type 2'].includes(connector))throw Error('Rrezja duhet të jetë 1–100 km dhe fuqia 0–1000 kW.');
   return {radius,minPower,connector,includeUnknown:Boolean(raw.includeUnknown)};
 }
 function power(value){
@@ -46,21 +46,17 @@ export function parseStations(data,options,center,line=null){
     const id=`${element.type}/${element.id}`;if(!/^(node|way|relation)\/\d+$/.test(id)||seen.has(id))continue;seen.add(id);
     if(tags.access==='private'||tags.access==='no')continue;
     if(tags['disused:amenity']||tags['abandoned:amenity']||tags.operational_status==='closed')continue;
-    const connections=[];
-    for(const [key,label] of [['type2_combo','CCS2'],['type2','Type 2']]){
-      const count=tags[`socket:${key}`];
-      if(count&&count!=='0'&&count!=='no')connections.push({label,power:power(tags[`socket:${key}:output`])});
-    }
+    const labels={type2_combo:'CCS2',type2:'Type 2',chademo:'CHAdeMO',type1:'Type 1',type1_combo:'CCS1',tesla_supercharger:'Tesla',tesla_destination:'Tesla',schuko:'Schuko'};
+    const connections=Object.entries(tags).filter(([key,count])=>/^socket:[^:]+$/.test(key)&&count&&count!=='0'&&count!=='no')
+      .map(([key])=>({label:labels[key.slice(7)]||key.slice(7).replaceAll('_',' '),power:power(tags[key+':output'])}));
     const unknown=connections.length===0;
-    // Do not describe explicitly incompatible stations (e.g. CHAdeMO only) as unspecified.
-    const otherSockets=Object.keys(tags).some(k=>/^socket:[^:]+$/.test(k)&&tags[k]!=='0'&&tags[k]!=='no');
-    if(unknown&&(!options.includeUnknown||otherSockets||options.minPower>0))continue;
-    const matching=connections.filter(c=>(options.connector==='both'||c.label===options.connector)&&c.power>=options.minPower);
+    if(unknown&&(!options.includeUnknown||options.minPower>0))continue;
+    const matching=connections.filter(c=>(options.connector==='all'||(options.connector==='both'&&['CCS2','Type 2'].includes(c.label))||c.label===options.connector)&&c.power>=options.minPower);
     if(!unknown&&!matching.length)continue;
     const km=line?corridorDistance(p,line):distance(center,p);
     if(km>options.radius)continue;
     const address=[tags['addr:street'],tags['addr:housenumber'],tags['addr:city']].filter(Boolean).join(' ');
-    out.push({id,name:tags.name||tags.brand||tags.operator||'Stacion karikimi',point:p,address,operator:tags.operator||tags.brand||'',connectors:unknown?'Lidhësi i paspecifikuar':matching.map(c=>c.label).join(' / '),power:Math.max(0,...matching.map(c=>c.power)),unknown,distance:km,
+    out.push({id,name:tags.name||tags.brand||tags.operator||'Stacion karikimi',point:p,address,operator:tags.operator||tags.brand||'',connectors:unknown?'Lidhësi i paspecifikuar':matching.map(c=>c.label).join(' / '),power:Math.max(0,...matching.map(c=>c.power)),unknown,compatible:matching.some(c=>['CCS2','Type 2'].includes(c.label)),distance:km,
       price:tags.charge||(tags.fee==='no'?'Pa pagesë, sipas regjistrit':''),hours:tags.opening_hours||'',access:tags.access||'',source:`https://www.openstreetmap.org/${id}`});
   }
   return out.sort((a,b)=>a.distance-b.distance);

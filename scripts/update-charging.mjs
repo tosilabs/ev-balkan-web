@@ -5,6 +5,10 @@ const query=`[out:json][timeout:180][maxsize:268435456];nwr["amenity"="charging_
 const errors=[];
 let snapshot;
 try {
+ const cached=JSON.parse(await readFile('dist/data/charging-balkans.json','utf8'));
+ if(cached.elements?.length>=100&&cached.fetchedAt&&Date.now()-Date.parse(cached.fetchedAt)<6*60*60*1000){snapshot=cached;console.log('Reusing build cache registry:',cached.fetchedAt);}
+}catch{}
+if(!snapshot)try {
  const previous=await requestJson('https://tosilabs.github.io/ev-balkan-web/data/charging-balkans.json',{timeout:10000});
  if(previous.elements?.length>=100&&previous.fetchedAt&&Date.now()-Date.parse(previous.fetchedAt)<6*60*60*1000) {
   snapshot=previous;console.log('Reusing recently downloaded registry:',previous.fetchedAt);
