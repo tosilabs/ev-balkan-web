@@ -1,5 +1,5 @@
-const CACHE='udhembare-shell-v2';
-const SHELL=['./','./index.html','./styles.css?v=2.1','./app.mjs?v=2.1','./core.mjs?v=2.1','./services.mjs?v=2.1','./cities.mjs?v=2.1','./details.mjs?v=2.1','./photos.mjs?v=2.1','./sources-ui.mjs?v=2.1','./operating.mjs?v=2.1','./terrain.mjs?v=2.1','./terrain-ui.mjs?v=2.1','./history.mjs?v=2.1','./travel.mjs?v=2.1','./basemap.mjs?v=2.1','./weather.mjs?v=2.1','./weather-ui.mjs?v=2.1','./storage.mjs?v=2.1','./mini-map.mjs?v=2.1','./providers.json','./icon.svg?v=2.1','./manifest.webmanifest'];
+const CACHE='udhembare-shell-v3';
+const SHELL=['./','./index.html','./styles.css?v=2.2','./app.mjs?v=2.2','./core.mjs?v=2.2','./services.mjs?v=2.2','./cities.mjs?v=2.2','./details.mjs?v=2.2','./photos.mjs?v=2.2','./sources-ui.mjs?v=2.2','./operating.mjs?v=2.2','./terrain.mjs?v=2.2','./terrain-ui.mjs?v=2.2','./history.mjs?v=2.2','./travel.mjs?v=2.2','./basemap.mjs?v=2.2','./weather.mjs?v=2.2','./weather-ui.mjs?v=2.2','./storage.mjs?v=2.2','./mini-map.mjs?v=2.2','./location.mjs?v=2.2','./providers.json','./icon.svg?v=2.2','./manifest.webmanifest'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting()));});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('udhembare-shell-')&&key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});
 // Cache the shell and the public regional registry, never personal searches or map tiles.

@@ -1,5 +1,5 @@
-import {requestJson} from './services.mjs?v=2.1';
-import {webUrl} from './details.mjs?v=2.1';
+import {requestJson} from './services.mjs?v=2.2';
+import {webUrl} from './details.mjs?v=2.2';
 const cache=new Map();
 const plain=value=>String(value??'').replace(/<[^>]*>/g,'').replace(/&amp;/g,'&').replace(/&quot;/g,'"').slice(0,200);
 async function lookup(file){

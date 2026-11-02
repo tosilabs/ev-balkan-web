@@ -1,5 +1,5 @@
-import {point,settings} from './core.mjs?v=2.1';
-import {makeProfile} from './terrain.mjs?v=2.1';
+import {point,settings} from './core.mjs?v=2.2';
+import {makeProfile} from './terrain.mjs?v=2.2';
 const MODES=['near','place','route'];
 const trim=x=>typeof x==='string'?x.slice(0,300):'';
 // Ramer-Douglas-Peucker retains turns. Increase tolerance only for unusually detailed routes.

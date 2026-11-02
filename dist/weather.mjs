@@ -1,5 +1,5 @@
-import {sampleRoute} from './terrain.mjs?v=2.1';
-import {requestJson} from './services.mjs?v=2.1';
+import {sampleRoute} from './terrain.mjs?v=2.2';
+import {requestJson} from './services.mjs?v=2.2';
 const variables=['temperature_2m','precipitation','precipitation_probability','snowfall','weather_code','visibility','wind_speed_10m','wind_gusts_10m','is_day'];
 const cache=new Map();
 const number=(x,min,max)=>typeof x==='number'&&Number.isFinite(x)&&x>=min&&x<=max?x:null;
@@ -25,7 +25,7 @@ export function weatherAdvisories(p){
  if(p.precipitation!==null&&p.precipitation>=5)add('rain',`Reshje të forta: ${p.precipitation.toFixed(1)} mm/orë`,p.precipitation>=10?'high':'notice');
  return out;
 }
-export function routeWeatherPoints(line,center){return line?sampleRoute(line,{spacingKm:70,maxPoints:10}):[{lat:center.lat,lon:center.lon,km:0,label:'Vendi i kërkimit'}];}
+export function routeWeatherPoints(line,center){return line?sampleRoute(line,{spacingKm:25,maxPoints:20}):[{lat:center.lat,lon:center.lon,km:0,label:'Vendi i kërkimit'}];}
 export async function fetchWeather(points,{signal,request=requestJson,now=Date.now(),force=false}={}){
  const key=points.map(p=>`${p.lat.toFixed(4)},${p.lon.toFixed(4)}`).join(';'),old=cache.get(key);
  if(!force&&old&&now-old.at<600000)return old.data;
@@ -49,7 +49,7 @@ export function selectForecast(data,points,{departure=Date.now(),duration=null,a
 export function radarFrames(data,now=Date.now()){
  let host;try{host=new URL(data.host);}catch{throw Error('Burimi i radarit nuk është i vlefshëm.');}
  if(host.protocol!=='https:'||host.hostname!=='tilecache.rainviewer.com'||host.username||host.password)throw Error('Host i panjohur i radarit.');
- const frames=(Array.isArray(data.radar?.past)?data.radar.past:[]).filter(f=>Number.isFinite(f.time)&&f.time*1000<=now+300000&&f.time*1000>=now-3*3600000&&/^\/v2\/radar\/\d+$/.test(f.path)).sort((a,b)=>a.time-b.time).slice(-13);
+ const frames=(Array.isArray(data.radar?.past)?data.radar.past:[]).filter(f=>Number.isFinite(f.time)&&f.time*1000<=now+300000&&f.time*1000>=now-3*3600000&&/^\/v2\/radar\/[a-zA-Z0-9_-]{1,128}$/.test(f.path)).sort((a,b)=>a.time-b.time).slice(-13);
  if(!frames.length||now-frames.at(-1).time*1000>90*60000)throw Error('Nuk ka pamje mjaftueshëm të reja të radarit.');
  return {host:host.origin,frames,stale:now-frames.at(-1).time*1000>30*60000};
 }

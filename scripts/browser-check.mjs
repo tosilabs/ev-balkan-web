@@ -34,8 +34,9 @@ try{
  browser=await chromium.launch();
  const context=await browser.newContext(contextOptions);context.setDefaultTimeout(20000);page=await context.newPage();
  let forecastCalls=0;await context.route('https://api.open-meteo.com/v1/forecast**',route=>{forecastCalls++;return route.fulfill({json:weatherFixture(route.request().url())});});
- await context.route('https://api.rainviewer.com/public/weather-maps.json',route=>{const seconds=Math.floor(Date.now()/1000);return route.fulfill({json:{host:'https://tilecache.rainviewer.com',radar:{past:[{time:seconds-1200,path:'/v2/radar/111'},{time:seconds-600,path:'/v2/radar/222'}]}}});});
- await context.route('https://tilecache.rainviewer.com/**',route=>route.fulfill({contentType:'image/png',body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNQqAj4DwADjAHo3Pmz1AAAAABJRU5ErkJggg==','base64')}));
+ await context.route('https://api.rainviewer.com/public/weather-maps.json',route=>{const seconds=Math.floor(Date.now()/1000);return route.fulfill({json:{host:'https://tilecache.rainviewer.com',radar:{past:[{time:seconds-1200,path:'/v2/radar/b8bf13a9560e'},{time:seconds-600,path:'/v2/radar/5158c2341ca7'}]}}});});
+ let radarTileRequests=0;
+ await context.route('https://tilecache.rainviewer.com/**',route=>{radarTileRequests++;return route.fulfill({contentType:'image/png',body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNQqAj4DwADjAHo3Pmz1AAAAABJRU5ErkJggg==','base64')});});
  let elevationCalls=0;await context.route('https://api.open-meteo.com/v1/elevation**',route=>{elevationCalls++;const count=new URL(route.request().url()).searchParams.get('latitude').split(',').length;return route.fulfill({json:{elevation:Array.from({length:count},(_,i)=>200+150*Math.sin(i/5))}});});
  page.on('pageerror',error=>errors.push(error.message));
  await page.addInitScript(()=>Object.defineProperty(navigator,'share',{configurable:true,value:undefined}));
@@ -53,6 +54,12 @@ try{
  assert.equal(await page.locator('#results-panel').isVisible(),false,'List should not obstruct initial map');
  assert.equal(await page.locator('#search-dialog').isVisible(),false,'Fields should not obstruct initial map');
  assert.equal(await page.locator('#radius-badge').innerText(),'10 km');
+ assert.equal(await page.locator('.user-location-marker').count(),1,'Own location must be visible independently of chargers');
+ assert.match(await page.locator('.user-location-marker').getAttribute('aria-label'),/Vendndodhja ime.*saktësia/);
+ await context.setGeolocation({latitude:41.9983,longitude:21.4256,accuracy:25});
+ await page.waitForFunction(()=>document.querySelector('.user-location-marker')?.getAttribute('aria-label')?.includes('±25 m'));
+ assert.equal(await page.locator('.leaflet-locationAccuracy-pane path').count(),1);
+
  assert.equal(await page.locator('.numbered-marker').count(),1);
  assert.equal(await page.locator('.numbered-marker .map-marker').first().innerText(),'1');
  assert.equal(await page.locator('.numbered-marker .speed-ultra').count(),1);
@@ -93,10 +100,18 @@ try{
  assert.ok(await page.locator('.terrain-road.terrain-high').count()>0);assert.ok(await page.locator('.terrain-road.terrain-down').count()>0);assert.equal(await page.locator('.elevation-chart').count(),1);
  await page.locator('#terrain-chart input[type=range]').evaluate(el=>{el.value='10';el.dispatchEvent(new Event('input',{bubbles:true}));});assert.match(await page.locator('.profile-readout').innerText(),/km.*m.*%/);
  await page.screenshot({path:'browser-results/route-elevation-phone.png'});
- await page.locator('#weather-open').click();await page.locator('.weather-row').first().waitFor();
+ await page.locator('#terrain-close').click();await page.locator('#route-weather-alert').waitFor();assert.match(await page.locator('#route-weather-alert').innerText(),/pika me sinjale/);
+ await page.locator('#route-weather-alert').click();await page.locator('.weather-row').first().waitFor();
+ assert.ok(await page.locator('.route-alert-item').count()>0);assert.match(await page.locator('#route-alerts').innerText(),/km nga nisja.*Rafale/s);
+ assert.equal(await page.locator('.user-location-marker').count(),1,'New route must preserve own position');
+
  assert.equal(await page.locator('#terrain-panel').isVisible(),false,'Weather and elevation panels must not overlap');
  assert.ok(await page.locator('.weather-marker').count()>=2);assert.match(await page.locator('#weather-summary').innerText(),/Jo alarme zyrtare/);assert.ok(await page.locator('.weather-advisory').count()>0);
  await page.locator('#radar-toggle').check();await page.locator('#radar-controls').waitFor();assert.match(await page.locator('#radar-status').innerText(),/Pamja:/);
+ await page.waitForFunction(()=>[...document.querySelectorAll('.leaflet-radarRain-pane img')].some(img=>img.complete&&img.naturalWidth>0));
+ assert.ok(radarTileRequests>0);assert.match(await page.locator('.leaflet-radarRain-pane img').first().getAttribute('src'),/5158c2341ca7/);
+ assert.ok(await page.locator('.leaflet-radarRain-pane').evaluate(el=>Number(getComputedStyle(el).zIndex)>Number(getComputedStyle(document.querySelector('.leaflet-tile-pane')).zIndex)),'Radar must render above the vector/raster basemap');
+
  await page.locator('#radar-play').click();await page.waitForTimeout(1100);await page.getByRole('button',{name:'Ndalo animacionin e radarit'}).click();
  assert.equal(await page.locator('#radar-frame').getAttribute('max'),'1');await page.screenshot({path:'browser-results/route-weather-radar-phone.png'});
  await page.locator('#radar-toggle').uncheck();assert.equal(await page.locator('#radar-controls').isVisible(),false);await page.locator('#weather-close').click();
@@ -187,7 +202,7 @@ try{
  await deniedPage.addInitScript(()=>{window.gpsCalls=0;Object.defineProperty(navigator,'geolocation',{configurable:true,value:{getCurrentPosition(ok,fail){window.gpsCalls++;fail({code:1});}}});});
  await deniedPage.route('**/data/charging-balkans.json',route=>route.fulfill({json:{bounds:[34,12,48.5,30],fetchedAt:new Date().toISOString(),elements:[station]}}));
  await deniedPage.route('https://router.project-osrm.org/route/**',route=>{routeRequest=route.request().url();return route.fulfill({json:{code:'Ok',routes:[{distance:35000,duration:2400,geometry:{coordinates:[[21.4254,41.9981],[21.426,41.999],[21.5,42.1]]}}]}});});
- await deniedPage.goto('http://127.0.0.1:8080/',{waitUntil:'networkidle'});await deniedPage.locator('#location-note').waitFor();
+ await deniedPage.goto('http://127.0.0.1:8080/',{waitUntil:'networkidle'});await deniedPage.locator('#location-note').waitFor();assert.equal(await deniedPage.locator('.user-location-marker').count(),0,'Denied GPS must never produce a fabricated device position');
  assert.equal(await deniedPage.locator('#search-dialog').isVisible(),true);assert.equal(await deniedPage.locator('#tab-place').getAttribute('aria-selected'),'true');
  await deniedPage.getByRole('tab',{name:'Në rrugë'}).click();await deniedPage.locator('#destination').fill('42.1,21.5');
  await deniedPage.getByRole('button',{name:'Gjej karikues'}).click();await deniedPage.locator('#origin-manual').waitFor();
@@ -196,13 +211,13 @@ try{
  await deniedPage.locator('#origin').fill('41.9981,21.4254');await deniedPage.getByRole('button',{name:'Gjej karikues'}).click();await waitSearch(deniedPage);
  await deniedPage.waitForFunction(()=>document.querySelector('#terrain-status').textContent.includes('Lartësia nuk u mor'),null,{timeout:20000});
  assert.ok(await deniedPage.locator('.terrain-road.terrain-unknown').count()>0);assert.equal(await deniedPage.locator('#terrain-retry').isVisible(),true);
- assert.match(routeRequest,/21.4254,41.9981;21.5,42.1/);assert.equal(await deniedPage.evaluate(()=>window.gpsCalls),gpsCalls,'Manual route must never request GPS');
+ assert.match(routeRequest,/21.4254,41.9981;21.5,42.1/);assert.equal(await deniedPage.evaluate(()=>window.gpsCalls),gpsCalls,'Manual route must never request GPS');assert.equal(await deniedPage.locator('.user-location-marker').count(),0,'Manual route origin is not device position');
  await deniedPage.locator('#search-open').click();await deniedPage.locator('#origin').fill('Shkup');await deniedPage.getByRole('button',{name:'Gjej karikues'}).click();await deniedPage.getByRole('heading',{name:'Zgjidh pikën e nisjes'}).waitFor();await deniedPage.locator('.place-option').click();await waitSearch(deniedPage);
  await deniedPage.locator('#search-open').click();await deniedPage.locator('#pick-origin').click();await deniedPage.locator('#map').click({position:{x:170,y:400}});await deniedPage.locator('#origin').waitFor();
  assert.match(await deniedPage.locator('#origin').inputValue(),/^-?\d+\.\d+,-?\d+\.\d+$/);assert.equal(await deniedPage.locator('#tab-route').getAttribute('aria-selected'),'true');assert.equal(await deniedPage.locator('#destination').inputValue(),'42.1,21.5');
  await deniedPage.locator('#pick-destination').click();await deniedPage.locator('#map').click({position:{x:180,y:410}});await deniedPage.locator('#destination').waitFor();assert.equal(await deniedPage.locator('#tab-route').getAttribute('aria-selected'),'true');
  await deniedPage.screenshot({path:'browser-results/manual-origin-phone.png'});
- await deniedPage.locator('[data-close="search-dialog"]').click();await deniedPage.locator('#weather-open').click();await deniedPage.waitForFunction(()=>document.querySelector('#weather-status').textContent.includes('nuk u mor'),null,{timeout:20000});assert.equal(await deniedPage.locator('.weather-row').count(),0);await deniedPage.locator('#weather-close').click();await deniedPage.locator('#search-open').click();
+ await deniedPage.locator('[data-close="search-dialog"]').click();await deniedPage.locator('#weather-open').click();await deniedPage.waitForFunction(()=>document.querySelector('#weather-status').textContent.includes('nuk u mor'),null,{timeout:20000});assert.equal(await deniedPage.locator('.weather-row').count(),0);assert.match(await deniedPage.locator('#route-weather-alert').textContent(),/pa të dhëna/);await deniedPage.locator('#weather-close').click();await deniedPage.locator('#search-open').click();
  await deniedPage.locator('[data-close="search-dialog"]').click();
  await deniedPage.locator('#list-open').click();await deniedPage.locator('.open-station').first().click();await deniedPage.locator('#station-panel').waitFor();
  await deniedPage.locator('#travel-manual').click();await deniedPage.locator('#travel-origin').fill('41.9981,21.4254');await deniedPage.getByRole('button',{name:'Llogarit udhëtimin'}).click();
@@ -210,6 +225,7 @@ try{
  await deniedPage.locator('#travel-manual').click();await deniedPage.locator('#travel-pick').click();await deniedPage.locator('#map').click({position:{x:170,y:340}});await deniedPage.locator('#station-panel').waitFor();assert.equal(await deniedPage.locator('#tab-route').getAttribute('aria-selected'),'true');
  await denied.close();
  console.log('PASS: route progress ordering, 300 m corridor filtering, alternate ordering and lazy station map previews');
+ console.log('PASS: own GPS marker, live movement and accuracy ring, route persistence, denied/manual distinction and current opaque radar frame identifiers above basemap');
  console.log('PASS: route forecast markers and advisories, separate panels, radar playback and graceful weather service failure');
  console.log('PASS: compact station sheet, driving distance and time, manual origin and map origin without GPS');
  console.log('PASS: full-route elevation, graded map colors, interactive chart, cached history across reloads, and unknown-data fallback');

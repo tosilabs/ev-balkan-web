@@ -4,7 +4,7 @@
 
 Aplikacion në shqip për udhëtime elektrike: karikues pranë teje, përgjatë itinerarit ose pranë një vendi, kohë udhëtimi, profil lartësie, mot dhe radar reshjesh. Punon në shfletuesin e telefonit dhe mund të instalohet si PWA. Vendndodhja mund të caktohet manualisht kur GPS mungon.
 
-**Versioni:** 2.1.0 · identiteti i ri Udhëmbarë. Projekti është përgatitur për repository më vete; shih [MIGRIMI.md](MIGRIMI.md) për gjendjen dhe hapat e krijimit/publikimit. Adresa e synuar nuk konsiderohet e publikuar derisa GitHub Pages të ketë përfunduar.
+**Versioni:** 2.2.0 · identiteti i ri Udhëmbarë. Projekti është përgatitur për repository më vete; shih [MIGRIMI.md](MIGRIMI.md) për gjendjen dhe hapat e krijimit/publikimit. Adresa e synuar nuk konsiderohet e publikuar derisa GitHub Pages të ketë përfunduar.
 
 Lidhjet me myAudi, Waze dhe OsmAnd, burimet e karikuesve, statusi kur ofrohet, fotografitë/lidhjet zyrtare, historiku, moti dhe profili i terrenit ruhen si funksione. Çmimet dhe statusi shfaqen vetëm kur burimi i ofron; sinjalet e motit janë orientuese, jo alarme zyrtare.
 
@@ -163,3 +163,8 @@ Filtri ka edhe 300 m, 500 m, 1 km dhe 2 km; te itinerari ka shkurtoren “Vetëm
 Lista dallon kilometrat përgjatë itinerarit nga largësia anësore; ato nuk paraqiten si devijim real ose rrugë automobilistike deri te karikuesi. ETA dhe largësia reale e OSRM mbeten te paneli i stacionit. Filtrat/renditja ruhen me kërkimin në historik dhe numrat e shenjave përputhen me listën.
 
 Kartat e listës kanë pamje reale të hartës së vendndodhjes, me pllaka standarde OpenStreetMap në zoom 14 dhe pozicionim Web Mercator. Ngarkohen vetëm kartat që duken në panel, pa shkarkim paraprak ose ruajtje offline të pllakave. Pamja ka pikën e stacionit, atribuimin dhe veprim për të hapur detajet. Mungesat e pllakave shënohen; nuk krijohet një hartë e sajuar. Pamjet përshtaten me gjerësinë e kartës, pa krijuar një instancë të rëndë harte për çdo stacion.
+
+
+### Radari, sinjalet përgjatë rrugës dhe GPS (v2.2)
+Kornizat RainViewer përdorin edhe identifikues opakë me shkronja/numra; ruhet shtegu i API-së me validim, pa e interpretuar si timestamp. Pikat e parashikimit kërkohen çdo rreth 25 km deri në 20 pika, me një përmbledhje mbi hartë dhe listë sinjalesh me kilometrin/orën e kalimit. Mungesa e të dhënave tregohet veçmas nga mungesa e sinjaleve. Sinjalet burojnë nga parashikimi, nuk janë alarme zyrtare ose raporte policie.
+GPS ka shenjë të veçantë blu me rreth saktësie dhe kohën e matjes. Pas lejes së përdoruesit, pozicioni përditësohet ndërsa faqja është në plan të parë; ndalet kur ajo fshihet. Një pikë manuale nuk etiketohet kurrë si vendndodhja aktuale. GPS i vjetër ose i padisponueshëm ngjyroset gri dhe emërtohet si vendndodhja e fundit.

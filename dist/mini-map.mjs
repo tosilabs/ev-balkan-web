@@ -1,4 +1,4 @@
-import {point} from './core.mjs?v=2.1';
+import {point} from './core.mjs?v=2.2';
 export function miniTiles(location,width,height,zoom=14){
  const p=point(location.lat,location.lon),n=2**zoom,lat=Math.max(-85.051128,Math.min(85.051128,p.lat)),sin=Math.sin(lat*Math.PI/180);
  const px=(p.lon+180)/360*n*256,py=(.5-Math.log((1+sin)/(1-sin))/(4*Math.PI))*n*256,tiles=[];

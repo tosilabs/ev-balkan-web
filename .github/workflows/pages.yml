@@ -74,6 +74,9 @@ jobs:
       - name: Check phone and desktop browser flows
         timeout-minutes: 3
         run: node scripts/browser-check.mjs
+      - name: Verify current public weather APIs in browser
+        timeout-minutes: 1
+        run: node scripts/weather-smoke.mjs
       - name: Save browser screenshots
         if: always()
         uses: actions/upload-artifact@v4

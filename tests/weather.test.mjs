@@ -4,7 +4,7 @@ import {weatherKind,weatherAdvisories,routeWeatherPoints,fetchWeather,selectFore
 const now=Date.now(),hour=Math.ceil(now/3600000)*3600;
 const data={locations:[{time:[hour,hour+3600,hour+7200],temperature_2m:[-2,1,10],precipitation:[1,0,0],precipitation_probability:[90,10,0],snowfall:[.5,0,0],weather_code:[71,2,0],wind_gusts_10m:[80,30,10],wind_speed_10m:[40,10,5],visibility:[150,10000,20000]}, {time:[hour,hour+3600,hour+7200],temperature_2m:[20,25,30],weather_code:[0,0,0]}]};
 test('Weather points include route endpoints with bounded sampling',()=>{
- const line=[{lat:42,lon:21},{lat:45,lon:25}],points=routeWeatherPoints(line,line[0]);assert.ok(points.length<=10);assert.equal(points[0].km,0);assert.equal(points.at(-1).lat,45);assert.equal(routeWeatherPoints(null,line[0]).length,1);
+ const line=[{lat:42,lon:21},{lat:45,lon:25}],points=routeWeatherPoints(line,line[0]);assert.ok(points.length<=20);assert.equal(points[0].km,0);assert.equal(points.at(-1).lat,45);assert.equal(routeWeatherPoints(null,line[0]).length,1);
 });
 test('Forecast hour follows approximate route arrival and unknown values never become zero',()=>{
  const points=[{lat:42,lon:21,km:0},{lat:43,lon:22,km:100}];
@@ -28,4 +28,10 @@ test('Radar uses recent past frames, rejects foreign hosts, and never treats for
  const result=radarFrames(input,now);assert.equal(result.frames.length,2);assert.match(radarTile(result,1),/124\/256\/\{z\}\/\{x\}\/\{y\}\/2\/1_1.png/);
  assert.throws(()=>radarFrames({...input,host:'https://evil.example'}));assert.throws(()=>radarFrames({...input,radar:{past:[{time:seconds-8000,path:'/v2/radar/123'}]}},now));
  assert.throws(()=>radarFrames({...input,radar:{past:[{time:seconds,path:'/../../image'}]}},now));
+});
+
+test('Current RainViewer opaque frame identifiers are preserved without accepting URL traversal',()=>{
+ const input={host:'https://tilecache.rainviewer.com',radar:{past:[{time:Math.floor(now/1000)-600,path:'/v2/radar/5158c2341ca7'}]}};
+ const result=radarFrames(input,now);assert.match(radarTile(result,0),/\/v2\/radar\/5158c2341ca7\/256\//);
+ for(const path of ['/v2/radar/../../evil','/v2/radar/abc?bad=true','/v2/radar/abc/extra','/v2/radar/%2e%2e'])assert.throws(()=>radarFrames({...input,radar:{past:[{time:Math.floor(now/1000)-600,path}]}},now));
 });
