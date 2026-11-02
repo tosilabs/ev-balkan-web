@@ -1,13 +1,16 @@
-import {point,coordinates,distance,bounds,settings,parseStations,validStationId,destinationUrl,shareData,navigationUrl} from './core.mjs?v=1.7';
-import {localPlaces} from './cities.mjs?v=1.7';
-import {requestJson as json,loadCharging} from './services.mjs?v=1.7';
-import {externalLocationUrl,bestClass,webUrl,setProviderCatalog} from './details.mjs?v=1.7';
-import {photoSection} from './photos.mjs?v=1.7';
-import {finesLiveSection,showSources} from './sources-ui.mjs?v=1.7';
-import {checkOperating,currentOperating,workingOnly} from './operating.mjs?v=1.7';
-import {loadTerrain,coloredPieces,TERRAIN} from './terrain.mjs?v=1.7';
-import {renderProfile} from './terrain-ui.mjs?v=1.7';
-import {cleanHistory,cleanHistoryEntry,addHistory,encodeHistory,historyLabel} from './history.mjs?v=1.7';
+import {point,coordinates,distance,bounds,settings,parseStations,validStationId,destinationUrl,shareData,navigationUrl} from './core.mjs?v=1.8';
+import {localPlaces} from './cities.mjs?v=1.8';
+import {requestJson as json,loadCharging} from './services.mjs?v=1.8';
+import {externalLocationUrl,bestClass,webUrl,setProviderCatalog} from './details.mjs?v=1.8';
+import {photoSection} from './photos.mjs?v=1.8';
+import {finesLiveSection,showSources} from './sources-ui.mjs?v=1.8';
+import {checkOperating,currentOperating,workingOnly} from './operating.mjs?v=1.8';
+import {loadTerrain,coloredPieces,TERRAIN} from './terrain.mjs?v=1.8';
+import {renderProfile} from './terrain-ui.mjs?v=1.8';
+import {cleanHistory,cleanHistoryEntry,addHistory,encodeHistory,historyLabel} from './history.mjs?v=1.8';
+import {stationTravel,formatTravel} from './travel.mjs?v=1.8';
+import {initBasemap} from './basemap.mjs?v=1.8';
+let detailStation=null,stationFromList=false,travelController=null,manualTravelOrigin=null,deviceLocation=null,gpsDenied=false;
 let candidates=[],lastSearch=null,routeState=null,terrainController=null,terrainMarker=null,chartControl=null,pendingReplay=null;
 const $=id=>document.getElementById(id);
 const providerReady=json(new URL('./data/providers.json',import.meta.url).href,{timeout:4000}).catch(()=>json(new URL('./providers.json',import.meta.url).href,{timeout:4000})).then(setProviderCatalog).catch(()=>{});
@@ -29,8 +32,8 @@ syncOrigin();
 $('destination').value=String(storage.get('evb-query','')).slice(0,300);
 function text(tag,value,className){const node=document.createElement(tag);node.textContent=value;if(className)node.className=className;return node;}
 function toast(message,error=false){$('status').textContent=message;$('status').title=message;$('results-note').textContent=message;$('status').classList.toggle('error',error);}
-function showResults(open=true){if(open)setTerrainOpen(false);$('results-panel').hidden=!open;document.body.classList.toggle('results-open',open);$('list-open').setAttribute('aria-expanded',String(open));}
-function openSearch(){setTerrainOpen(false);showResults(false);$('search-dialog').showModal();}
+function showResults(open=true){if(open){closeStation();setTerrainOpen(false);}$('results-panel').hidden=!open;document.body.classList.toggle('results-open',open);$('list-open').setAttribute('aria-expanded',String(open));}
+function openSearch(){closeStation();setTerrainOpen(false);showResults(false);$('search-dialog').showModal();}
 $('search-open').addEventListener('click',openSearch);
 $('filters-open').addEventListener('click',openSearch);
 $('list-open').addEventListener('click',()=>showResults($('results-panel').hidden));
@@ -59,12 +62,13 @@ function savedCount(){$('saved-count').textContent=String(favourites.length);}
 savedCount();
 function mapInit(){
   if(!window.L){$('map-fallback').hidden=false;$('pick-map').disabled=true;return;}
-  map=L.map('map',{scrollWheelZoom:true}).setView([41.9981,21.4254],11);
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
+  map=L.map('map',{scrollWheelZoom:true,minZoom:2,maxZoom:19}).setView([41.9981,21.4254],11);
+  initBasemap(map,L);
   markers=L.layerGroup().addTo(map);
   map.on('click',event=>{
     if(!picking||active)return;
     const p=point(event.latlng.lat.toFixed(6),event.latlng.lng.toFixed(6));
+    if(picking==='travel-origin'){manualTravelOrigin=p;stopPicking();if(detailStation)openStation(detailStation,stationFromList);return;}
     if(picking==='origin'){
       $('origin-mode').value='manual';$('origin').value=`${p.lat},${p.lon}`;syncOrigin();
       if(originMarker)map.removeLayer(originMarker);originMarker=L.circleMarker([p.lat,p.lon],{radius:8,color:'#8052b3',fillOpacity:.7}).addTo(map);
@@ -86,12 +90,12 @@ function stopPicking(){picking=false;$('pick-hint').hidden=true;$('pick-map').cl
 function startPicking(target){
  if(!map||active)return;setTerrainOpen(false);if($('search-dialog').open)$('search-dialog').close();showResults(false);picking=target;
  $('pick-map').classList.add('active');$('pick-map').textContent='×';$('pick-map').setAttribute('aria-label','Anulo zgjedhjen e pikës');
- $('pick-hint').textContent=(target==='origin'?'Prek hartën për pikën e nisjes':target==='destination'?'Prek hartën për destinacionin':'Prek hartën për vendin')+' · Anulo ×';$('pick-hint').hidden=false;
+ $('pick-hint').textContent=(target==='travel-origin'?'Prek hartën për nisjen te stacioni':target==='origin'?'Prek hartën për pikën e nisjes':target==='destination'?'Prek hartën për destinacionin':'Prek hartën për vendin')+' · Anulo ×';$('pick-hint').hidden=false;
 }
 $('pick-map').addEventListener('click',()=>{if(picking){stopPicking();return;}startPicking('place');});
 $('pick-origin').addEventListener('click',()=>startPicking('origin'));
 $('pick-destination').addEventListener('click',()=>startPicking('destination'));
-$('pick-hint').addEventListener('click',()=>{const target=picking;stopPicking();if(target==='origin'||target==='destination')openSearch();});
+$('pick-hint').addEventListener('click',()=>{const target=picking;stopPicking();if(target==='travel-origin'){if(detailStation)openStation(detailStation,stationFromList);}else if(target==='origin'||target==='destination')openSearch();});
 function locationRecovery(error,requestMode){
  $('location-note').textContent=error.message+' Cakto '+(requestMode==='route'?'pikën e nisjes':'një vend')+' manualisht ose në hartë.';$('location-note').hidden=false;
  if(requestMode==='route'){$('origin-mode').value='manual';syncOrigin();}else chooseMode('place');
@@ -105,7 +109,7 @@ function locate(signal){
     const finish=(callback,value)=>{if(settled)return;settled=true;signal.removeEventListener('abort',abort);callback(value);};
     const abort=()=>finish(reject,new DOMException('Kërkimi u anulua.','AbortError'));
     signal.addEventListener('abort',abort,{once:true});if(signal.aborted){abort();return;}
-    navigator.geolocation.getCurrentPosition(pos=>finish(resolve,point(pos.coords.latitude,pos.coords.longitude)),error=>finish(reject,Error(error.code===1?'Vendndodhja nuk u lejua. Lejoje në shfletues ose kërko sipas qytetit.':'Vendndodhja nuk u mor. Provo jashtë ose kërko sipas qytetit.')),{enableHighAccuracy:true,timeout:20000,maximumAge:60000});
+    navigator.geolocation.getCurrentPosition(pos=>{if(settled)return;const p=point(pos.coords.latitude,pos.coords.longitude);gpsDenied=false;deviceLocation={point:p,at:Date.now()};finish(resolve,p);},error=>{gpsDenied=true;finish(reject,Error(error.code===1?'Vendndodhja nuk u lejua. Lejoje në shfletues ose kërko sipas qytetit.':'Vendndodhja nuk u mor. Provo jashtë ose kërko sipas qytetit.'));},{enableHighAccuracy:true,timeout:20000,maximumAge:60000});
   });
 }
 async function place(query,signal,title='Zgjidh vendin'){
@@ -223,11 +227,8 @@ function drawResults(line,center,preserve=false){
   stations.forEach((station,i)=>{const p=station.point;points.push([p.lat,p.lon]);
     const speed=station.speed||bestClass(station.connections||[]),label=`${i+1}. ${station.name} · ${speed.label} · ${currentOperating(station).label}`;
     const icon=L.divIcon({className:'numbered-marker',html:`<span class="map-marker speed-${speed.key} operating-${currentOperating(station).key}">${i+1}</span>`,iconSize:[34,34],iconAnchor:[17,17]});
-    const marker=L.marker([p.lat,p.lon],{icon,title:label,alt:label}).addTo(markers);
-    marker.on('click',()=>{showResults(true);
-      if(i>=shown){shown=Math.min(stations.length,Math.ceil((i+1)/12)*12);renderCards();}
-      const card=document.querySelector(`[data-station-index="${i}"]`);if(card){document.querySelectorAll('.highlight').forEach(el=>el.classList.remove('highlight'));card.classList.add('highlight');const extra=card.querySelector('details');if(extra)extra.open=true;card.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'nearest'});}
-    });
+    const marker=L.marker([p.lat,p.lon],{icon,title:label,alt:label,stationId:station.id}).addTo(markers);
+    marker.on('click',()=>{if(!picking&&!active)openStation(station);});
   });
   if(center&&!line)radiusLayer=L.circle([center.lat,center.lon],{radius:viewingRadius*1000,color:'#5a8152',weight:1,dashArray:'5 6',fillColor:'#b0d471',fillOpacity:.035,interactive:false}).addTo(map);
   if(preserve)return;
@@ -320,6 +321,59 @@ function locationDetails(station){
  const reviews=document.createElement('div');reviews.className='provider-links';reviews.append(externalLink('Kërko reviews dhe foto në Maps ↗',externalLocationUrl(station,'reviews')),externalLink('Pamje rruge në Maps ↗',externalLocationUrl(station,'streetview')));body.append(reviews,text('p','Reviews nuk importohen në këtë faqe. Kontrollo që lokacioni në Maps është i njëjti.','field-note'));
  details.append(body);return details;
 }
+function closeStation(restore=false){
+ travelController?.abort();travelController=null;markers?.eachLayer(marker=>marker.getElement?.()?.classList.remove('marker-selected'));$('station-panel').hidden=true;document.body.classList.remove('station-open');
+ if(restore&&stationFromList)showResults(true);
+}
+function syncStationSave(){if(!detailStation)return;const saved=favourite(detailStation);$('station-save').textContent=saved?'♥':'♡';$('station-save').setAttribute('aria-pressed',String(saved));$('station-save').setAttribute('aria-label',(saved?'Hiq nga të ruajturat: ':'Ruaj: ')+detailStation.name);}
+function openStation(station,fromList=false){
+ closeStation();detailStation=station;stationFromList=fromList;showResults(false);setTerrainOpen(false);
+ document.body.classList.add('station-open');$('station-panel').hidden=false;markers?.eachLayer(marker=>marker.getElement?.()?.classList.toggle('marker-selected',marker.options.stationId===station.id));
+ $('station-title').textContent=station.name;$('station-address').textContent=station.address||'Adresa e paspecifikuar';syncStationSave();
+ const profile=providerPanel(station),identity=profile.querySelector('.provider-identity');$('station-brand').replaceChildren(identity);
+ const state=currentOperating(station);$('station-condition').replaceChildren(text('span',state.label,'tag operating-status operating-'+state.key));
+ if(state.key==='working')$('station-condition').append(text('span',`${state.available} / ${state.total} të përzgjedhur të lirë`,'tag'));
+ $('station-hours').replaceChildren(text('span','Orari'),text('strong',station.hours||'I paspecifikuar'));
+ $('station-connectors').replaceChildren(connectorPanel(station));
+ const extra=document.createElement('details');extra.className='station-extra';extra.append(text('summary','Operatori, foto dhe të gjitha detajet'));
+ extra.append(profile,factsPanel(station),locationDetails(station));
+ const source=text('p','Statusi: '+(state.observedAt?new Date(state.observedAt).toLocaleString('sq-AL'):state.reason),'field-note');extra.append(source);$('station-extra').replaceChildren(extra);
+ $('station-actions').replaceChildren();const share=text('button','Dërgo te Audi ↗','primary');share.addEventListener('click',()=>openShare(station));$('station-actions').append(share);
+ const nav=document.createElement('div');nav.className='nav-links';for(const [target,label] of [['osmand','OsmAnd ↗'],['waze','Waze ↗']])nav.append(externalLink(label,navigationUrl(station,target)));$('station-actions').append(nav);
+ $('station-title').focus({preventScroll:true});$('station-panel').querySelector('.station-sheet-scroll').scrollTop=0;
+ calculateStationTravel();
+}
+async function calculateStationTravel(forceGps=false){
+ if(!detailStation)return;travelController?.abort();const controller=new AbortController();travelController=controller;const station=detailStation;
+ $('travel-value').textContent='Duke llogaritur rrugën…';$('travel-note').textContent='';
+ try{
+  let origin,label;
+  if(forceGps){origin=await locate(controller.signal);manualTravelOrigin=null;label='Nga vendndodhja ime';}
+  else if(manualTravelOrigin){origin=manualTravelOrigin;label='Nga nisja manuale';}
+  else if(deviceLocation&&Date.now()-deviceLocation.at<60000){origin=deviceLocation.point;label='Nga vendndodhja ime';}
+  else if(gpsDenied&&lastSearch?.start){origin=lastSearch.start;label='Nga nisja e itinerarit';}
+  else if(gpsDenied)throw Error('GPS-i nuk është i disponueshëm. Cakto nisjen për të marrë largësinë dhe kohën.');
+  else{origin=await locate(controller.signal);label='Nga vendndodhja ime';}
+  if(controller.signal.aborted||detailStation!==station)return;
+  const data=await stationTravel(origin,station.point,{signal:controller.signal});if(controller.signal.aborted||detailStation!==station)return;
+  const formatted=formatTravel(data);$('travel-value').textContent=`${formatted.distance} → ${formatted.duration}`;
+  $('travel-note').textContent=`${label} · me veturë · OSRM · vlerësim pa trafik në kohë reale.`;
+ }catch(error){if(controller.signal.aborted||detailStation!==station)return;$('travel-value').textContent='Koha e udhëtimit nuk u mor';$('travel-note').textContent=error.message||'Provo përsëri ose cakto nisjen manualisht.';}
+}
+$('station-close').addEventListener('click',()=>closeStation(true));
+$('station-save').addEventListener('click',()=>{if(detailStation){toggleSaved(detailStation);syncStationSave();}});
+$('travel-gps').addEventListener('click',()=>calculateStationTravel(true));
+$('travel-manual').addEventListener('click',()=>{$('travel-origin-error').textContent='';$('travel-origin-dialog').showModal();$('travel-origin').focus();});
+$('travel-origin-form').addEventListener('submit',async event=>{
+ event.preventDefault();if(!detailStation)return;travelController?.abort();const controller=new AbortController();travelController=controller;
+ const query=$('travel-origin').value.trim();if(!query)return;
+ $('travel-origin-dialog').close();
+ try{manualTravelOrigin=await place(query,controller.signal,'Zgjidh nisjen për stacionin');if(!controller.signal.aborted)calculateStationTravel();}
+ catch(error){if(controller.signal.aborted)return;$('travel-origin-error').textContent=error.message||'Vendi nuk u gjet.';$('travel-origin-dialog').showModal();}
+});
+$('travel-pick').addEventListener('click',()=>{$('travel-origin-dialog').close();$('station-panel').hidden=true;document.body.classList.remove('station-open');startPicking('travel-origin');});
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!$('station-panel').hidden&&!document.querySelector('dialog[open]'))closeStation(true);});
+
 function renderCards(){
   const container=$('results');container.replaceChildren();
   if(!stations.length){container.append(text('p',savedView?'Nuk ke ende karikues të ruajtur. Shtyp zemrën në një rezultat për ta ruajtur.':$('only-active').checked?'Nuk ka pika të konfirmuara në punë me këta filtra. Pikat pa status aktual nuk përfshihen.':'Nuk u gjetën karikues me këta filtra. Rrit rrezen, ul fuqinë minimale ose përfshi lidhës të paspecifikuar.','empty-note'));}
@@ -327,21 +381,12 @@ function renderCards(){
     const card=document.createElement('article');card.className='station-card';card.dataset.stationIndex=String(i);
     const top=document.createElement('div');top.className='card-top';top.append(text('span',String(i+1),'station-number'));
     const save=text('button',favourite(station)?'♥':'♡',favourite(station)?'save saved':'save');save.setAttribute('aria-label',favourite(station)?`Hiq nga të ruajturat: ${station.name}`:`Ruaj: ${station.name}`);save.setAttribute('aria-pressed',String(favourite(station)));save.addEventListener('click',()=>toggleSaved(station));top.append(save);card.append(top,text('h3',station.name),text('p',station.address||'Adresa e paspecifikuar','station-address'));
-    card.append(providerPanel(station));
     const tags=document.createElement('div');tags.className='station-tags';
-    for(const value of [station.power?`${station.power} kW`:'Fuqia e panjohur',savedView?'Nga kërkimi i ruajtur':`${station.distance.toFixed(1)} km`])tags.append(text('span',value,station.unknown||station.compatible===false?'tag unknown':'tag'));
-    const speed=station.speed||bestClass(station.connections||[]);card.querySelector('.station-number').classList.add('category-'+speed.key);tags.append(text('span',speed.label,'tag category-'+speed.key));
-    const operating=currentOperating(station);tags.append(text('span',operating.label,'tag operating-status operating-'+operating.key));
-    card.append(tags);
-    const detail=document.createElement('div');detail.className='station-details';detail.append(text('p',operating.key==='working'?`Lidhës të lirë: ${operating.available} / ${operating.total} të përzgjedhur`:station.finesId?'Disponueshmëria: kontrolloje te detajet Fines':'Disponueshmëria: e panjohur'),text('p',station.price?`Tarifa e raportuar: ${station.price}`:'Çmimi: i panjohur'));
-    detail.append(text('p',operating.observedAt?'Raportuar nga Fines: '+new Date(operating.observedAt).toLocaleString('sq-AL'):operating.reason));
-    if(!station.unknown&&station.compatible===false)detail.append(text('p','Lidhësi i regjistruar nuk përputhet me Audi e-tron.'));
-    if(station.hours)detail.append(text('p',`Orari i raportuar: ${station.hours}`));
-    const source=text('a','Burimi: '+(station.sourceName||'OpenStreetMap')+' ↗');source.href=webUrl(station.source)||`https://www.openstreetmap.org/${station.id}`;source.target='_blank';source.rel='noopener';detail.append(source);card.append(detail,connectorPanel(station),factsPanel(station),locationDetails(station));
-    const share=text('button','Dërgo te Audi ↗','primary');share.addEventListener('click',()=>openShare(station));card.append(share);
-    const links=document.createElement('div');links.className='nav-links';
-    for(const [target,label] of [['osmand','OsmAnd ↗'],['waze','Waze ↗']]){const a=text('a',label);a.href=navigationUrl(station,target);a.target='_blank';a.rel='noopener';links.append(a);}
-    card.append(links);container.append(card);
+    const speed=station.speed||bestClass(station.connections||[]),state=currentOperating(station);card.querySelector('.station-number').classList.add('category-'+speed.key);
+    tags.append(text('span',station.power?`${station.power} kW`:'Fuqia e panjohur','tag'),text('span',speed.label,'tag category-'+speed.key),text('span',state.label,'tag operating-status operating-'+state.key));
+    const summary=text('p',`${station.connectors} · ${savedView?'Vend i ruajtur':station.distance.toFixed(1)+' km në vijë ajrore'}`,'compact-station-info');
+    const open=text('button','Hap stacionin →','open-station');open.setAttribute('aria-label','Hap stacionin: '+station.name);open.addEventListener('click',()=>openStation(station,true));
+    card.append(tags,summary,open);container.append(card);
   });
   $('load-more').hidden=shown>=stations.length;
   $('show-unconfirmed').hidden=savedView||!$('only-active').checked||stations.length>0;
@@ -356,7 +401,7 @@ function applyOperating(preserve=true){
  $('result-count').textContent=String(stations.length);$('result-count').hidden=false;
  const counts={working:0,offline:0,unknown:0};for(const s of candidates)counts[currentOperating(s).key]++;
  toast(`${counts.working} në punë · ${counts.offline} jashtë shërbimit · ${counts.unknown} të pakonfirmuar. ${fetchedAt?'Regjistri u shkarkua më '+new Date(fetchedAt).toLocaleDateString('sq-AL')+'. ':''}Status aktual nga Fines, kur ofrohet. Në punë mund të jetë edhe i zënë. ${requestMode==='route'?'Distanca nga vija e itinerarit, jo devijimi rrugor.':'Distanca në vijë ajrore.'}`);
- renderCards();drawResults(line,center,preserve);
+ document.body.classList.add('has-results');renderCards();drawResults(line,center,preserve);
 }
 function changeActive(){
  syncActive();const options=storage.get('evb-settings-v2',{});storage.set('evb-settings-v2',{...options,activeOnly:$('only-active').checked});
@@ -374,7 +419,7 @@ setInterval(expireOperating,30000);document.addEventListener('visibilitychange',
 $('load-more').addEventListener('click',()=>{shown=Math.min(stations.length,shown+12);renderCards();});
 $('saved-open').addEventListener('click',()=>{
   setTerrainOpen(false);$('terrain-open').hidden=true;
-  savedView=true;stations=$('only-active').checked?workingOnly(favourites):[...favourites];shown=Math.min(12,stations.length);$('results-title').textContent='Karikuesit e tu';$('results-eyebrow').textContent='TË RUAJTURAT';$('result-count').textContent=String(stations.length);$('result-count').hidden=false;
+  closeStation();savedView=true;stations=$('only-active').checked?workingOnly(favourites):[...favourites];shown=Math.min(12,stations.length);$('results-title').textContent='Karikuesit e tu';$('results-eyebrow').textContent='TË RUAJTURAT';$('result-count').textContent=String(stations.length);$('result-count').hidden=false;
   toast('Të ruajtura në këtë shfletues. Tarifat dhe detajet mund të jenë vjetruar; distancat nuk rillogariten.');renderCards();drawResults(null,null);showResults(true);
 });
 $('cancel').addEventListener('click',()=>{resetTerrain();active?.abort();active=null;busy(false);$('results-title').textContent='Kërkimi u anulua';toast('Mund të nisësh një kërkim të ri.');});
@@ -389,7 +434,7 @@ $('search-form').addEventListener('submit',async event=>{
   storage.set('evb-settings-v2',options);if(query)storage.set('evb-query',query);
   if($('search-dialog').open)$('search-dialog').close();showResults(false);viewingRadius=options.radius;
   $('radius-badge').textContent=`${options.radius} km`;$('filter-badge').textContent=options.connector==='all'?'Të gjithë':options.connector==='both'?'Për Audi':options.connector;
-  resetTerrain();const controller=new AbortController();active=controller;busy(true);savedView=false;lastSearch=null;candidates=[];stations=[];shown=0;clearMap();$('results').replaceChildren();$('load-more').hidden=true;$('result-count').hidden=true;$('results-title').textContent='Duke gjetur ndalesën tënde…';
+  closeStation();manualTravelOrigin=null;resetTerrain();const controller=new AbortController();active=controller;busy(true);savedView=false;lastSearch=null;candidates=[];stations=[];shown=0;clearMap();$('results').replaceChildren();$('load-more').hidden=true;$('result-count').hidden=true;$('results-title').textContent='Duke gjetur ndalesën tënde…';
   const requestMode=mode;
   try{
     let center,start=null,line=null,routeKm=null;
@@ -415,7 +460,7 @@ $('search-form').addEventListener('submit',async event=>{
     if(active!==controller)return;
     const checked=await checkOperating(parseStations(data,options,center,line),{signal:controller.signal,minPower:options.minPower});
     if(active!==controller)return;
-    candidates=checked;lastSearch={line,center,requestMode,routeKm,fetchedAt:data.fetchedAt,replayed:Boolean(replay)};
+    candidates=checked;lastSearch={line,center,start,requestMode,routeKm,fetchedAt:data.fetchedAt,replayed:Boolean(replay)};
     const fresh=new Map(candidates.map(s=>[s.id,s]));
     if(favourites.some(s=>fresh.has(s.id))){favourites=favourites.map(s=>fresh.get(s.id)||s);storage.set('evb-favourites',favourites);}
     applyOperating(false);

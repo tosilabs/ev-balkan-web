@@ -38,7 +38,7 @@ try{
  await page.route(/https:\/\/(photon\.komoot\.io|overpass-api\.de|overpass\.private\.coffee)\//,route=>route.abort());
  await page.route('https://commons.wikimedia.org/w/api.php**',route=>route.fulfill({json:{query:{pages:{1:{imageinfo:[{mime:'image/png',thumburl:'https://upload.wikimedia.org/test-charging.png',extmetadata:{Artist:{value:'Test Photographer'},LicenseShortName:{value:'CC BY 4.0'},LicenseUrl:{value:'https://creativecommons.org/licenses/by/4.0/'}}}]}}}}}));
  await page.route('https://upload.wikimedia.org/test-charging.png',route=>route.fulfill({contentType:'image/png',body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNQqAj4DwADjAHo3Pmz1AAAAABJRU5ErkJggg==','base64')}));
- await page.route('https://router.project-osrm.org/route/**',route=>route.fulfill({json:{code:'Ok',routes:[{distance:35000,geometry:{coordinates:[[21.4254,41.9981],[21.426,41.999],[21.5,42.1]]}}]}}));
+ await page.route('https://router.project-osrm.org/route/**',route=>route.fulfill({json:{code:'Ok',routes:[{distance:139000,duration:7020,geometry:{coordinates:[[21.4254,41.9981],[21.426,41.999],[21.5,42.1]]}}]}}));
  await page.goto('http://127.0.0.1:8080/',{waitUntil:'networkidle',timeout:60000});
  await waitSearch(page);
  assert.equal(await page.locator('body').evaluate(el=>el.scrollWidth<=innerWidth),true,'Mobile page overflows horizontally');
@@ -54,7 +54,11 @@ try{
  await page.getByRole('heading',{name:'Karikues prove'}).waitFor();
  assert.match(await page.locator('.station-card').innerText(),/150 kW/);
  assert.equal(await page.locator('.station-number').first().innerText(),'1');
- await page.locator('.provider-logo img').first().waitFor();await page.waitForFunction(()=>document.querySelector('.provider-logo img')?.naturalWidth>0);
+ await page.locator('.open-station').first().click();await page.locator('#station-panel').waitFor();
+ await page.getByText('139 km → 1 h 57 min',{exact:true}).waitFor();assert.match(await page.locator('#travel-note').innerText(),/Nga vendndodhja ime/);
+ await page.screenshot({path:'browser-results/minimal-station-phone.png'});
+ await page.locator('.station-extra>summary').click();
+ await page.locator('.provider-logo img').first().waitFor();await page.waitForFunction(()=>document.querySelector('#station-brand .provider-logo img')?.naturalWidth>0);
  assert.equal(await page.locator('.connector-row').count(),2);assert.match(await page.locator('.station-facts').first().innerText(),/Tarifa e raportuar/);
  assert.match(await page.getByRole('link',{name:'Email',exact:false}).getAttribute('href'),/mailto:/);
  await page.locator('.station-more summary').first().click();
@@ -71,7 +75,8 @@ try{
  assert.equal(await page.locator('#share-native').isDisabled(),true);
  assert.match(await page.locator('#share-maps').getAttribute('href'),/query=41.999%2C21.426/);
  await page.locator('[data-close="share-dialog"]').click();
- await page.locator('#results-close').click();
+ await page.locator('#station-close').click();await page.locator('#results-close').click();
+ await page.locator('.leaflet-marker-icon').first().click();await page.locator('#station-panel').waitFor();await page.locator('#station-close').click();
  await searchPlace(page,'place');await page.locator('#list-open').click();
  await page.getByRole('heading',{name:'Karikues prove'}).waitFor();
  await page.locator('#results-close').click();
@@ -140,14 +145,14 @@ try{
  await operatorPage.goto('http://127.0.0.1:8080/',{waitUntil:'networkidle'});await waitSearch(operatorPage);await operatorPage.locator('#list-open').click();
  await operatorPage.locator('.operating-status').filter({hasText:'Në punë'}).waitFor();
  await operatorPage.locator('#list-open').click();await operatorPage.locator('#active-toggle').click();assert.equal(await operatorPage.locator('#active-toggle').getAttribute('aria-pressed'),'true');await operatorPage.locator('#list-open').click();assert.equal(await operatorPage.locator('.station-card').count(),1);
- await operatorPage.locator('.station-more summary').first().click();await operatorPage.getByRole('button',{name:'Kontrollo disponueshmërinë',exact:true}).click();
+ await operatorPage.locator('.open-station').first().click();await operatorPage.locator('.station-extra>summary').click();await operatorPage.locator('.station-more summary').first().click();await operatorPage.getByRole('button',{name:'Kontrollo disponueshmërinë',exact:true}).click();
  await operatorPage.getByText(/1 nga 2 lidhës të lirë/).waitFor();await operatorPage.getByRole('button',{name:'Kontrollo përsëri',exact:true}).click();assert.equal(liveCalls,1,'Live API must respect two minute cache');
  await operatorContext.close();
  const denied=await browser.newContext({...contextOptions,permissions:[]}),deniedPage=await denied.newPage();let routeRequest='';
  await denied.route(/https:\/\/(api\.open-meteo\.com|api\.opentopodata\.org)\//,route=>route.abort());
  await deniedPage.addInitScript(()=>{window.gpsCalls=0;Object.defineProperty(navigator,'geolocation',{configurable:true,value:{getCurrentPosition(ok,fail){window.gpsCalls++;fail({code:1});}}});});
  await deniedPage.route('**/data/charging-balkans.json',route=>route.fulfill({json:{bounds:[34,12,48.5,30],fetchedAt:new Date().toISOString(),elements:[station]}}));
- await deniedPage.route('https://router.project-osrm.org/route/**',route=>{routeRequest=route.request().url();return route.fulfill({json:{code:'Ok',routes:[{distance:35000,geometry:{coordinates:[[21.4254,41.9981],[21.426,41.999],[21.5,42.1]]}}]}});});
+ await deniedPage.route('https://router.project-osrm.org/route/**',route=>{routeRequest=route.request().url();return route.fulfill({json:{code:'Ok',routes:[{distance:35000,duration:2400,geometry:{coordinates:[[21.4254,41.9981],[21.426,41.999],[21.5,42.1]]}}]}});});
  await deniedPage.goto('http://127.0.0.1:8080/',{waitUntil:'networkidle'});await deniedPage.locator('#location-note').waitFor();
  assert.equal(await deniedPage.locator('#search-dialog').isVisible(),true);assert.equal(await deniedPage.locator('#tab-place').getAttribute('aria-selected'),'true');
  await deniedPage.getByRole('tab',{name:'Në rrugë'}).click();await deniedPage.locator('#destination').fill('42.1,21.5');
@@ -162,7 +167,14 @@ try{
  await deniedPage.locator('#search-open').click();await deniedPage.locator('#pick-origin').click();await deniedPage.locator('#map').click({position:{x:170,y:400}});await deniedPage.locator('#origin').waitFor();
  assert.match(await deniedPage.locator('#origin').inputValue(),/^-?\d+\.\d+,-?\d+\.\d+$/);assert.equal(await deniedPage.locator('#tab-route').getAttribute('aria-selected'),'true');assert.equal(await deniedPage.locator('#destination').inputValue(),'42.1,21.5');
  await deniedPage.locator('#pick-destination').click();await deniedPage.locator('#map').click({position:{x:180,y:410}});await deniedPage.locator('#destination').waitFor();assert.equal(await deniedPage.locator('#tab-route').getAttribute('aria-selected'),'true');
- await deniedPage.screenshot({path:'browser-results/manual-origin-phone.png'});await denied.close();
+ await deniedPage.screenshot({path:'browser-results/manual-origin-phone.png'});
+ await deniedPage.locator('[data-close="search-dialog"]').click();
+ await deniedPage.locator('#list-open').click();await deniedPage.locator('.open-station').first().click();await deniedPage.locator('#station-panel').waitFor();
+ await deniedPage.locator('#travel-manual').click();await deniedPage.locator('#travel-origin').fill('41.9981,21.4254');await deniedPage.getByRole('button',{name:'Llogarit udhëtimin'}).click();
+ await deniedPage.waitForFunction(()=>document.querySelector('#travel-value').textContent.includes('→'),null,{timeout:20000});assert.match(await deniedPage.locator('#travel-note').innerText(),/Nga nisja manuale/);
+ await deniedPage.locator('#travel-manual').click();await deniedPage.locator('#travel-pick').click();await deniedPage.locator('#map').click({position:{x:170,y:340}});await deniedPage.locator('#station-panel').waitFor();assert.equal(await deniedPage.locator('#tab-route').getAttribute('aria-selected'),'true');
+ await denied.close();
+ console.log('PASS: compact station sheet, driving distance and time, manual origin and map origin without GPS');
  console.log('PASS: full-route elevation, graded map colors, interactive chart, cached history across reloads, and unknown-data fallback');
  console.log('PASS: GPS denied recovery, manual route coordinates and city, separate origin/destination map picking, provider logo, official apps, email and connector details');
 
