@@ -29,6 +29,7 @@ async function searchPlace(page,mode){
 try{
  browser=await chromium.launch();
  const context=await browser.newContext(contextOptions);page=await context.newPage();
+ let elevationCalls=0;await context.route('https://api.open-meteo.com/v1/elevation**',route=>{elevationCalls++;const count=new URL(route.request().url()).searchParams.get('latitude').split(',').length;return route.fulfill({json:{elevation:Array.from({length:count},(_,i)=>200+150*Math.sin(i/5))}});});
  page.on('pageerror',error=>errors.push(error.message));
  await page.addInitScript(()=>Object.defineProperty(navigator,'share',{configurable:true,value:undefined}));
  await page.route('**/data/providers.json',route=>route.fulfill({json:{providers:[{id:'eldrive',logo:'https://www.eldrive.eu/test-logo.png',source:'https://www.eldrive.eu/bg-en/charging'}]}}));
@@ -74,7 +75,19 @@ try{
  await searchPlace(page,'place');await page.locator('#list-open').click();
  await page.getByRole('heading',{name:'Karikues prove'}).waitFor();
  await page.locator('#results-close').click();
- await searchPlace(page,'route');await page.locator('#list-open').click();
+ await searchPlace(page,'route');
+ await page.waitForFunction(()=>document.querySelector('#terrain-status').textContent.includes('100%'));
+ assert.equal(await page.locator('#terrain-panel').isVisible(),true);
+ assert.ok(await page.locator('.terrain-road.terrain-high').count()>0);assert.ok(await page.locator('.terrain-road.terrain-down').count()>0);assert.equal(await page.locator('.elevation-chart').count(),1);
+ await page.locator('#terrain-chart input[type=range]').fill('10');await page.locator('#terrain-chart input[type=range]').dispatchEvent('input');assert.match(await page.locator('.profile-readout').innerText(),/km.*m.*%/);
+ await page.screenshot({path:'browser-results/route-elevation-phone.png'});
+ const callsBeforeReplay=elevationCalls;
+ await page.locator('#history-open').click();assert.ok(await page.locator('.history-item').count()>=2);
+ await page.locator('.history-item>button:first-child').filter({hasText:'Itinerar'}).first().click();await waitSearch(page);
+ assert.equal(elevationCalls,callsBeforeReplay,'Saved elevation should reopen without another DEM request');assert.match(await page.locator('#terrain-status').innerText(),/profil i ruajtur/);
+ await page.locator('#terrain-close').click();await page.reload({waitUntil:'networkidle'});await waitSearch(page);
+ await page.locator('#history-open').click();await page.locator('.history-item>button:first-child').filter({hasText:'Itinerar'}).first().click();await waitSearch(page);assert.match(await page.locator('#terrain-status').innerText(),/profil i ruajtur/);assert.equal(elevationCalls,callsBeforeReplay);
+ await page.locator('#list-open').click();
  await page.getByRole('heading',{name:'Karikues përgjatë rrugës'}).waitFor();
  await page.getByRole('heading',{name:'Karikues prove'}).waitFor();
  await page.locator('#results-close').click();
@@ -131,6 +144,7 @@ try{
  await operatorPage.getByText(/1 nga 2 lidhës të lirë/).waitFor();await operatorPage.getByRole('button',{name:'Kontrollo përsëri',exact:true}).click();assert.equal(liveCalls,1,'Live API must respect two minute cache');
  await operatorContext.close();
  const denied=await browser.newContext({...contextOptions,permissions:[]}),deniedPage=await denied.newPage();let routeRequest='';
+ await denied.route(/https:\/\/(api\.open-meteo\.com|api\.opentopodata\.org)\//,route=>route.abort());
  await deniedPage.addInitScript(()=>{window.gpsCalls=0;Object.defineProperty(navigator,'geolocation',{configurable:true,value:{getCurrentPosition(ok,fail){window.gpsCalls++;fail({code:1});}}});});
  await deniedPage.route('**/data/charging-balkans.json',route=>route.fulfill({json:{bounds:[34,12,48.5,30],fetchedAt:new Date().toISOString(),elements:[station]}}));
  await deniedPage.route('https://router.project-osrm.org/route/**',route=>{routeRequest=route.request().url();return route.fulfill({json:{code:'Ok',routes:[{distance:35000,geometry:{coordinates:[[21.4254,41.9981],[21.426,41.999],[21.5,42.1]]}}]}});});
@@ -141,12 +155,15 @@ try{
  assert.equal(await deniedPage.locator('#origin-mode').inputValue(),'manual');assert.equal(await deniedPage.locator('#destination').inputValue(),'42.1,21.5');
  const gpsCalls=await deniedPage.evaluate(()=>window.gpsCalls);
  await deniedPage.locator('#origin').fill('41.9981,21.4254');await deniedPage.getByRole('button',{name:'Gjej karikues'}).click();await waitSearch(deniedPage);
+ await deniedPage.waitForFunction(()=>document.querySelector('#terrain-status').textContent.includes('Lartësia nuk u mor'));
+ assert.ok(await deniedPage.locator('.terrain-road.terrain-unknown').count()>0);assert.equal(await deniedPage.locator('#terrain-retry').isVisible(),true);
  assert.match(routeRequest,/21.4254,41.9981;21.5,42.1/);assert.equal(await deniedPage.evaluate(()=>window.gpsCalls),gpsCalls,'Manual route must never request GPS');
  await deniedPage.locator('#search-open').click();await deniedPage.locator('#origin').fill('Shkup');await deniedPage.getByRole('button',{name:'Gjej karikues'}).click();await deniedPage.getByRole('heading',{name:'Zgjidh pikën e nisjes'}).waitFor();await deniedPage.locator('.place-option').click();await waitSearch(deniedPage);
  await deniedPage.locator('#search-open').click();await deniedPage.locator('#pick-origin').click();await deniedPage.locator('#map').click({position:{x:170,y:400}});await deniedPage.locator('#origin').waitFor();
  assert.match(await deniedPage.locator('#origin').inputValue(),/^-?\d+\.\d+,-?\d+\.\d+$/);assert.equal(await deniedPage.locator('#tab-route').getAttribute('aria-selected'),'true');assert.equal(await deniedPage.locator('#destination').inputValue(),'42.1,21.5');
  await deniedPage.locator('#pick-destination').click();await deniedPage.locator('#map').click({position:{x:180,y:410}});await deniedPage.locator('#destination').waitFor();assert.equal(await deniedPage.locator('#tab-route').getAttribute('aria-selected'),'true');
  await deniedPage.screenshot({path:'browser-results/manual-origin-phone.png'});await denied.close();
+ console.log('PASS: full-route elevation, graded map colors, interactive chart, cached history across reloads, and unknown-data fallback');
  console.log('PASS: GPS denied recovery, manual route coordinates and city, separate origin/destination map picking, provider logo, official apps, email and connector details');
 
  console.log('PASS: fullscreen phone map, 10 km default, all 230 small numbered markers, categories, operator links, attributed Commons photo, external reviews links, hidden fields/list, three modes, filters, saved stations, sharing fallback and real downloaded chargers near Skopje with public search services blocked');

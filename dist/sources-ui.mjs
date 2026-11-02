@@ -1,7 +1,7 @@
-import {requestJson} from './services.mjs?v=1.6';
-import {webUrl} from './details.mjs?v=1.6';
-import {availabilitySummary,finesLocation,connectorState} from './operating.mjs?v=1.6';
-export {availabilitySummary} from './operating.mjs?v=1.6';
+import {requestJson} from './services.mjs?v=1.7';
+import {webUrl} from './details.mjs?v=1.7';
+import {availabilitySummary,finesLocation,connectorState} from './operating.mjs?v=1.7';
+export {availabilitySummary} from './operating.mjs?v=1.7';
 const node=(tag,value,className)=>{const n=document.createElement(tag);n.textContent=value;if(className)n.className=className;return n;};
 const link=(label,url)=>{const a=node('a',label);a.href=url;a.target='_blank';a.rel='noopener noreferrer';return a;};
 export function finesLiveSection(id){
@@ -26,7 +26,7 @@ export function finesLiveSection(id){
  });
  return section;
 }
-const statuses={active:'Integruar',cached:'Kopja e fundit',unavailable:'Përkohësisht i paarritshëm',authorization_required:'Kërkon autorizim',registration_required:'Kërkon regjistrim / API key',discovery_portal:'Katalog burimesh',catalogue_only:'Identifikuar · jo i integruar',aggregate_only:'Statistika · jo lokacione'};
+const statuses={on_demand:'Sipas itinerarit',active:'Integruar',cached:'Kopja e fundit',unavailable:'Përkohësisht i paarritshëm',authorization_required:'Kërkon autorizim',registration_required:'Kërkon regjistrim / API key',discovery_portal:'Katalog burimesh',catalogue_only:'Identifikuar · jo i integruar',aggregate_only:'Statistika · jo lokacione'};
 export async function showSources(container,dialog){
  dialog.showModal();container.replaceChildren(node('p','Duke ngarkuar burimet…'));
  try{
