@@ -5,12 +5,12 @@ const query=`[out:json][timeout:180][maxsize:268435456];nwr["amenity"="charging_
 const errors=[];
 let snapshot;
 try {
- const cached=JSON.parse(await readFile('dist/data/charging-balkans.json','utf8'));
- if(cached.schemaVersion>=2&&cached.elements?.length>=100&&cached.fetchedAt&&Date.now()-Date.parse(cached.fetchedAt)<6*60*60*1000){snapshot=cached;console.log('Reusing build cache registry:',cached.fetchedAt);}
+ const cached=JSON.parse(await readFile('dist/data/osm-base.json','utf8').catch(()=>readFile('dist/data/charging-balkans.json','utf8')));
+ if(!cached.sourcesMerged&&cached.schemaVersion>=2&&cached.elements?.length>=100&&cached.fetchedAt&&Date.now()-Date.parse(cached.fetchedAt)<6*60*60*1000){snapshot=cached;console.log('Reusing build cache registry:',cached.fetchedAt);}
 }catch{}
 if(!snapshot)try {
- const previous=await requestJson('https://tosilabs.github.io/ev-balkan-web/data/charging-balkans.json',{timeout:10000});
- if(previous.schemaVersion>=2&&previous.elements?.length>=100&&previous.fetchedAt&&Date.now()-Date.parse(previous.fetchedAt)<6*60*60*1000) {
+ const previous=await requestJson('https://tosilabs.github.io/ev-balkan-web/data/osm-base.json',{timeout:10000}).catch(()=>requestJson('https://tosilabs.github.io/ev-balkan-web/data/charging-balkans.json',{timeout:10000}));
+ if(!previous.sourcesMerged&&previous.schemaVersion>=2&&previous.elements?.length>=100&&previous.fetchedAt&&Date.now()-Date.parse(previous.fetchedAt)<6*60*60*1000) {
   snapshot=previous;console.log('Reusing recently downloaded registry:',previous.fetchedAt);
  }
 }catch{}
@@ -31,14 +31,15 @@ for(const endpoint of ['https://ovp.dresel.systems/api/interpreter','https://ove
 if(!snapshot){
  try{
   console.log('Trying previously published registry without changing its timestamp');
-  const data=await requestJson('https://tosilabs.github.io/ev-balkan-web/data/charging-balkans.json',{timeout:12000});
+  const data=await requestJson('https://tosilabs.github.io/ev-balkan-web/data/osm-base.json',{timeout:12000});
   if(!Array.isArray(data.elements)||data.elements.length<100||!data.fetchedAt)throw Error('No published registry');snapshot=data;
  }catch{
-  try{const data=JSON.parse(await readFile('dist/data/charging-balkans.json','utf8'));if(!data.fetchedAt||data.elements?.length<100)throw Error('Invalid cached registry');snapshot=data;}catch{}
+  try{const data=JSON.parse(await readFile('dist/data/osm-base.json','utf8'));if(!data.fetchedAt||data.elements?.length<100)throw Error('Invalid cached registry');snapshot=data;}catch{}
  }
 }
 if(!snapshot)throw Error('Cannot build a usable charging registry: '+errors.join('; '));
 await mkdir('dist/data',{recursive:true});
+await writeFile('dist/data/osm-base.json',JSON.stringify(snapshot));
 await writeFile('dist/data/charging-balkans.json',JSON.stringify(snapshot));
 console.log(`Registry ready: ${snapshot.elements.length} real OSM locations; fetched ${snapshot.fetchedAt}`);
 

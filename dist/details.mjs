@@ -8,7 +8,8 @@ export function providerInfo(tags={}){
  const name=tags.operator||tags.network||tags.brand||'';
  const key=[tags.operator,tags.network,tags.brand].filter(Boolean).join(' ').toLowerCase();
  let known=null;
- if(/\beldrive\b/.test(key))known={website:'https://www.eldrive.eu/',appPage:'https://www.eldrive.eu/bg-en/charging',android:'https://play.google.com/store/apps/details?id=com.fortum.eldrive',ios:'https://apps.apple.com/app/id1382692672'};
+ if(/\bfines\b/.test(key))known={website:'https://finescharging.com/',appPage:'https://finescharging.com/activate'};
+ else if(/\beldrive\b/.test(key))known={website:'https://www.eldrive.eu/',appPage:'https://www.eldrive.eu/bg-en/charging',android:'https://play.google.com/store/apps/details?id=com.fortum.eldrive',ios:'https://apps.apple.com/app/id1382692672'};
  else if(/\bcharge\s*(?:&|and|\+)?\s*go\b/.test(key))known={website:'https://chargego.rs/',appPage:'https://chargego.rs/en/chargegoapp/',android:'https://play.google.com/store/apps/details?id=com.charge_and_go_mobile',ios:'https://apps.apple.com/app/id1662961378'};
  else if(/\btesla\b/.test(key))known={website:'https://www.tesla.com/findus',appPage:'https://www.tesla.com/app/landing'};
  else if((/\bonecharge\b/.test(key)||(/\bpetrol\b/.test(key)&&(['SI','HR'].includes(tags['addr:country'])||/ljubljana|petrol d\.d/.test(key)))))known={website:'https://onecharge.eu/',appPage:'https://go.petrol.si/mobilnost/onecharge'};

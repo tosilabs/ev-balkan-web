@@ -1,8 +1,35 @@
-# EV Balkan Web — versioni 1.3
+# EV Balkan Web — versioni 1.4
 
 **Gjendja:** versioni burimor është përgatitur dhe kontrollet lokale kaluan. Kontrollo ekzekutimin më të fundit te Actions për gjendjen e publikimit. Nëse Pages nuk është aktivizuar ende, ndiq hapat te seksioni GitHub Pages.
 
 Web-faqe në shqip për kërkim karikuesish në Ballkan, e përshtatur për telefon dhe Audi e-tron evropian 2023. Nuk kërkon APK, llogari ose çelës API. Burimi i karikuesve është OpenStreetMap, jo lista e plotë e operatorëve.
+
+## Burime shtesë publike (v1.4)
+
+Përveç OpenStreetMap, pipeline lexon këto burime anonime pa çelës API:
+
+| Burimi | Mbulimi | Të dhënat | Qasja / kushtet |
+| --- | --- | --- | --- |
+| MYFAH, Ministria greke e Infrastrukturës dhe Transportit | Greqi | Lokacione, EVSE, lidhës, fuqi, operatorë, foto të lidhura | ZIP JSON publik, i publikuar çdo ditë; atribuohet regjistri dhe kushtet publike MYFAH/AFIR |
+| Fines Charging | Rrjeti i operatorit në Bullgari dhe lokacionet që publikon | Lokacione, lidhës, fuqi, interval çmimi kur jepet shprehimisht EUR/kWh | API publike, pa auth, CORS i lejuar; atribuim te operatori |
+| Qyteti i Zagrebit përmes data.gov.hr | Zagreb, jo gjithë Kroacia | Koordinata, adresa, numër prizash, AC/DC | GeoJSON publik, Otvorena dozvola (OD); nuk hamendësohen standardi i prizës ose kW |
+
+URL dhe gjendja aktuale gjenden në `dist/data/sources.json`, i gjeneruar në publikim, dhe në faqe te **? → Burimet e të dhënave · EU / NAP**. `data.europa.eu` trajtohet si portal zbulimi; Eurostat si statistikë, jo si lokacione. NAP Slovenia raportohet si qasje që kërkon autorizim (endpoint-i kthen 401; licenca CC BY-SA 4.0 është falas). BGNAP kërkon regjistrim/çelës API sipas dokumentacionit. Asnjëri nuk paraqitet si feed i integruar pa qasje reale.
+
+Burimet ruhen veçmas: `osm-base.json` (OSM/ODbL), `source-myfah.json`, `source-fines.json`, `source-zagreb.json` (kushtet e tyre), plus pamja e bashkuar `charging-balkans.json` me proveniencën për çdo rekord. Të dhënat e papërpunuara shkarkohen përkohësisht në `.source-cache/` dhe nuk publikohen. Nuk importohen numra të furnizimeve elektrike ose fusha të brendshme OCPI që nuk nevojiten.
+
+Bashkimi përdor përputhje konservative: operator/emër/ID EVSE i njëjtë dhe distancë deri 35 m. Operatorë të ndryshëm ose dy rekorde të ndryshme brenda të njëjtit regjistër nuk shkrihen vetëm sepse janë afër. Mund të mbeten dublime kur burimet përdorin emra të ndryshëm; kjo shmang fshirjen e pikave të tjera fizike. Në dështim të një burimi mbahet kopja e fundit me datën e saj dhe katalogu e shënon si të tillë.
+
+**Disponueshmëria Fines:** në detaje ka butonin për kontroll. Kërkesa bëhet vetëm kur përdoruesi e kërkon; përgjigjja për të njëjtin lokacion ripërdoret për të paktën dy minuta. Shfaqet koha e burimit. Përgjigjet pa timestamp të vlefshëm ose më të vjetra se dhjetë minuta nuk paraqiten si aktuale. Nuk ka garanci rezervimi ose status për të gjitha rrjetet. Statusi statik i MYFAH nuk shfaqet si status në kohë reale.
+
+Burime primare:
+
+- https://electrokinisi.yme.gov.gr/public/HelpMyfah/PublicData/
+- https://finescharging.com/public-api
+- https://data.gov.hr/ckan/en/dataset/geoportal-elektricne-punionice
+- https://nap.si/en/datasets_details?id=db82d062-1518-b71a-8036-9823bbd36e5a
+- https://sipbg.gov.bg/bgnap/portal/en/instructions
+- https://data.europa.eu/en
 
 ## Detajet e lokacioneve (v1.3)
 
@@ -70,7 +97,7 @@ Workflow kontrollon JavaScript-in dhe testet përpara publikimit të dosjes `dis
 - [Overpass API](https://wiki.openstreetmap.org/wiki/Overpass_API) për karikuesit: overpass-api.de dhe si rezervë overpass.private.coffee. Kërkesat kanë afat kohor dhe kufi memorie. Në dështim tregohet gabim; nuk paraqiten të dhëna të sajuara.
 - [Photon](https://github.com/komoot/photon) për qytete/adresa. Kërkohet vetëm kur shtypet butoni; nuk ka kërkesa automatike për çdo shkronjë. Përdorimi demonstrues nuk ka SLA.
 - [OSRM](https://project-osrm.org/) për itinerarin. Shërbim publik demonstrues, jo SLA prodhimi. Kërkohen itinerare deri në 1500 km. Distanca e karikuesit nga itinerari është gjeometrike; nuk përfaqëson devijimin me veturë, minutat shtesë ose qasje nga e njëjta anë e autostradës. Itinerari i Audi-t mund të ndryshojë.
-- Nuk ka status të lirë/i zënë në kohë reale. `charge`/`fee` janë tarifa të raportuara; nuk konvertohen në €/kWh dhe duhen konfirmuar te operatori.
+- Për shumicën e rrjeteve nuk ka status të lirë/i zënë në këtë faqe; Fines ka kontroll sipas kërkesës te detajet. `charge`/`fee` janë tarifa të raportuara; nuk konvertohen në €/kWh dhe duhen konfirmuar te operatori.
 - Nuk ka optimizim ndalesash sipas baterisë dhe nuk lexohen të dhëna nga vetura.
 - Android Auto nuk shfaq një web-faqe të zakonshme drejtpërdrejt. Përdor myAudi për destinacionin ose një aplikacion navigimi të instaluar.
 - Për fotot e kërkuara dërgohet emri i skedarit te Wikimedia Commons dhe merret thumbnail nga upload.wikimedia.org. Nuk dërgohet vendndodhja GPS atje.

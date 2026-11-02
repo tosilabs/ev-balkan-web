@@ -1,5 +1,5 @@
-const CACHE='ev-balkan-shell-v5';
-const SHELL=['./','./index.html','./styles.css?v=1.3','./app.mjs?v=1.3','./core.mjs?v=1.3','./services.mjs?v=1.3','./cities.mjs?v=1.3','./details.mjs?v=1.3','./photos.mjs?v=1.3','./icon.svg','./manifest.webmanifest'];
+const CACHE='ev-balkan-shell-v6';
+const SHELL=['./','./index.html','./styles.css?v=1.4','./app.mjs?v=1.4','./core.mjs?v=1.4','./services.mjs?v=1.4','./cities.mjs?v=1.4','./details.mjs?v=1.4','./photos.mjs?v=1.4','./sources-ui.mjs?v=1.4','./icon.svg','./manifest.webmanifest'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting()));});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('ev-balkan-shell-')&&key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});
 // Cache the shell and the public regional registry, never personal searches or map tiles.

@@ -111,7 +111,18 @@ try{
  await livePage.locator('#results-close').click();await searchPlace(livePage,'place');
  assert.ok(Number(await livePage.locator('#result-count').innerText())>0);
  await livePage.screenshot({path:'browser-results/real-charging-fullscreen.png'});
+ await livePage.locator('#help-open').click();await livePage.locator('#sources-open').click();
+ await livePage.getByRole('heading',{name:'MYFAH · regjistri kombëtar i Greqisë'}).waitFor();
+ await livePage.locator('[data-close="sources-dialog"]').click();await livePage.locator('[data-close="help-dialog"]').click();
  await live.close();
+ const operatorContext=await browser.newContext({...contextOptions,geolocation:{latitude:42.6977,longitude:23.3219}}),operatorPage=await operatorContext.newPage();
+ const finesRecord={type:'fines',id:'123',lat:42.698,lon:23.322,finesId:'123',tags:{name:'Fines test location',operator:'Fines Charging'},connections:[{label:'CCS2',current:'DC',power:150,count:2}],provenance:[{name:'Fines Charging',url:'https://finescharging.com/public-api',license:'Public API'}]};
+ await operatorPage.route('**/data/charging-balkans.json',route=>route.fulfill({json:{bounds:[34,12,48.5,30],fetchedAt:new Date().toISOString(),elements:[finesRecord]}}));
+ let liveCalls=0;await operatorPage.route('https://public.finescharging.com/v1/live/123.json',route=>{liveCalls++;return route.fulfill({json:{location_id:123,generated_at:new Date().toISOString(),connectors:[{plug_type:'CCS Combo 2',max_power_kw:150,available:true,status:'Available'},{plug_type:'CCS Combo 2',max_power_kw:150,available:false,status:'Charging'}]}});});
+ await operatorPage.goto('http://127.0.0.1:8080/',{waitUntil:'networkidle'});await waitSearch(operatorPage);await operatorPage.locator('#list-open').click();
+ await operatorPage.locator('.station-more summary').click();await operatorPage.getByRole('button',{name:'Kontrollo disponueshmërinë',exact:true}).click();
+ await operatorPage.getByText(/1 nga 2 lidhës të lirë/).waitFor();await operatorPage.getByRole('button',{name:'Kontrollo përsëri',exact:true}).click();assert.equal(liveCalls,1,'Live API must respect two minute cache');
+ await operatorContext.close();
  console.log('PASS: fullscreen phone map, 10 km default, all 230 small numbered markers, categories, operator links, attributed Commons photo, external reviews links, hidden fields/list, three modes, filters, saved stations, sharing fallback and real downloaded chargers near Skopje with public search services blocked');
  console.log('Live occupancy, GPS hardware and actual myAudi delivery are not tested.');
 }catch(error){
