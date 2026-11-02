@@ -9,9 +9,10 @@ permissions:
   contents: read
 concurrency:
   group: pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   check:
+    timeout-minutes: 12
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -68,6 +69,7 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Check phone and desktop browser flows
+        timeout-minutes: 3
         run: node scripts/browser-check.mjs
       - name: Save browser screenshots
         if: always()

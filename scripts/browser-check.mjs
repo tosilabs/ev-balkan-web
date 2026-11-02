@@ -17,7 +17,7 @@ let browser,page;
 const errors=[];
 const station={type:'node',id:123456789,lat:41.999,lon:21.426,tags:{amenity:'charging_station',name:'Karikues prove',operator:'Eldrive',wikimedia_commons:'File:Test charging point.png',description:'Charging point beside the entrance','socket:type2':'2','socket:type2:output':'22 kW','contact:email':'test@example.org',wheelchair:'yes','socket:type2_combo':'2','socket:type2_combo:output':'150 kW','addr:city':'Shkup'}};
 const contextOptions={viewport:{width:390,height:844},isMobile:true,hasTouch:true,geolocation:{latitude:41.9981,longitude:21.4254},permissions:['geolocation'],serviceWorkers:'block'};
-const waitSearch=page=>page.waitForFunction(()=>!document.body.classList.contains('busy')&&!document.querySelector('#result-count').hidden);
+const waitSearch=page=>page.waitForFunction(()=>!document.body.classList.contains('busy')&&!document.querySelector('#result-count').hidden,null,{timeout:25000});
 async function searchPlace(page,mode){
  await page.locator('#search-open').click();
  await page.getByRole('tab',{name:mode==='route'?'Në rrugë':'Një vend'}).click();
@@ -28,7 +28,7 @@ async function searchPlace(page,mode){
 }
 try{
  browser=await chromium.launch();
- const context=await browser.newContext(contextOptions);page=await context.newPage();
+ const context=await browser.newContext(contextOptions);context.setDefaultTimeout(20000);page=await context.newPage();
  let elevationCalls=0;await context.route('https://api.open-meteo.com/v1/elevation**',route=>{elevationCalls++;const count=new URL(route.request().url()).searchParams.get('latitude').split(',').length;return route.fulfill({json:{elevation:Array.from({length:count},(_,i)=>200+150*Math.sin(i/5))}});});
  page.on('pageerror',error=>errors.push(error.message));
  await page.addInitScript(()=>Object.defineProperty(navigator,'share',{configurable:true,value:undefined}));
@@ -76,7 +76,7 @@ try{
  await page.getByRole('heading',{name:'Karikues prove'}).waitFor();
  await page.locator('#results-close').click();
  await searchPlace(page,'route');
- await page.waitForFunction(()=>document.querySelector('#terrain-status').textContent.includes('100%'));
+ await page.waitForFunction(()=>document.querySelector('#terrain-status').textContent.includes('100%'),null,{timeout:20000});
  assert.equal(await page.locator('#terrain-panel').isVisible(),true);
  assert.ok(await page.locator('.terrain-road.terrain-high').count()>0);assert.ok(await page.locator('.terrain-road.terrain-down').count()>0);assert.equal(await page.locator('.elevation-chart').count(),1);
  await page.locator('#terrain-chart input[type=range]').evaluate(el=>{el.value='10';el.dispatchEvent(new Event('input',{bubbles:true}));});assert.match(await page.locator('.profile-readout').innerText(),/km.*m.*%/);
@@ -155,7 +155,7 @@ try{
  assert.equal(await deniedPage.locator('#origin-mode').inputValue(),'manual');assert.equal(await deniedPage.locator('#destination').inputValue(),'42.1,21.5');
  const gpsCalls=await deniedPage.evaluate(()=>window.gpsCalls);
  await deniedPage.locator('#origin').fill('41.9981,21.4254');await deniedPage.getByRole('button',{name:'Gjej karikues'}).click();await waitSearch(deniedPage);
- await deniedPage.waitForFunction(()=>document.querySelector('#terrain-status').textContent.includes('Lartësia nuk u mor'));
+ await deniedPage.waitForFunction(()=>document.querySelector('#terrain-status').textContent.includes('Lartësia nuk u mor'),null,{timeout:20000});
  assert.ok(await deniedPage.locator('.terrain-road.terrain-unknown').count()>0);assert.equal(await deniedPage.locator('#terrain-retry').isVisible(),true);
  assert.match(routeRequest,/21.4254,41.9981;21.5,42.1/);assert.equal(await deniedPage.evaluate(()=>window.gpsCalls),gpsCalls,'Manual route must never request GPS');
  await deniedPage.locator('#search-open').click();await deniedPage.locator('#origin').fill('Shkup');await deniedPage.getByRole('button',{name:'Gjej karikues'}).click();await deniedPage.getByRole('heading',{name:'Zgjidh pikën e nisjes'}).waitFor();await deniedPage.locator('.place-option').click();await waitSearch(deniedPage);
@@ -169,6 +169,6 @@ try{
  console.log('PASS: fullscreen phone map, 10 km default, all 230 small numbered markers, categories, operator links, attributed Commons photo, external reviews links, hidden fields/list, three modes, filters, saved stations, sharing fallback and real downloaded chargers near Skopje with public search services blocked');
  console.log('Live occupancy, GPS hardware and actual myAudi delivery are not tested.');
 }catch(error){
- if(page){console.error('PAGE STATUS:',await page.locator('#status').innerText().catch(()=>''));console.error('BROWSER ERRORS:',errors);await mkdir('browser-results',{recursive:true});await page.screenshot({path:'browser-results/failure.png'}).catch(()=>{});}
+ if(page){console.error('TERRAIN STATUS:',await page.locator('#terrain-status').innerText().catch(()=>''));console.error('PAGE STATUS:',await page.locator('#status').innerText().catch(()=>''));console.error('BROWSER ERRORS:',errors);await mkdir('browser-results',{recursive:true});await page.screenshot({path:'browser-results/failure.png'}).catch(()=>{});}
  throw error;
 }finally{await browser?.close();await new Promise(resolve=>server.close(resolve));}
