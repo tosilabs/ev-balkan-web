@@ -79,7 +79,7 @@ try{
  await page.waitForFunction(()=>document.querySelector('#terrain-status').textContent.includes('100%'));
  assert.equal(await page.locator('#terrain-panel').isVisible(),true);
  assert.ok(await page.locator('.terrain-road.terrain-high').count()>0);assert.ok(await page.locator('.terrain-road.terrain-down').count()>0);assert.equal(await page.locator('.elevation-chart').count(),1);
- await page.locator('#terrain-chart input[type=range]').fill('10');await page.locator('#terrain-chart input[type=range]').dispatchEvent('input');assert.match(await page.locator('.profile-readout').innerText(),/km.*m.*%/);
+ await page.locator('#terrain-chart input[type=range]').evaluate(el=>{el.value='10';el.dispatchEvent(new Event('input',{bubbles:true}));});assert.match(await page.locator('.profile-readout').innerText(),/km.*m.*%/);
  await page.screenshot({path:'browser-results/route-elevation-phone.png'});
  const callsBeforeReplay=elevationCalls;
  await page.locator('#history-open').click();assert.ok(await page.locator('.history-item').count()>=2);
