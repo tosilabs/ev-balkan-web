@@ -20,6 +20,8 @@ jobs:
           node-version: '22'
       - run: npm run check
       - run: npm test
+      - name: Inspect public national data feeds
+        run: python3 scripts/inspect-open-data.py
       - name: Restore downloaded registry
         uses: actions/cache/restore@v4
         with:

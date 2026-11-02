@@ -3,3 +3,4 @@ node_modules/
 .openai/local/
 browser-results/
 dist/data/
+.source-cache/
