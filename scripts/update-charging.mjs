@@ -1,13 +1,13 @@
 import {mkdir,readFile,writeFile} from 'node:fs/promises';
 import {requestJson} from '../dist/services.mjs';
 const bounds=[34,12,48.5,30];
-const query=`[out:json][timeout:45][maxsize:67108864];nwr["amenity"="charging_station"](${bounds.join(',')});out tags center;`;
+const query=`[out:json][timeout:25][maxsize:268435456];nwr["amenity"="charging_station"](${bounds.join(',')});out tags center;`;
 const errors=[];
 let snapshot;
-for(const endpoint of ['https://overpass.kumi.systems/api/interpreter','https://overpass-api.de/api/interpreter']){
+for(const endpoint of ['https://ovp.dresel.systems/api/interpreter','https://overpass.private.coffee/api/interpreter','https://overpass-api.de/api/interpreter']){
  try{
   console.log('Downloading charging registry:',endpoint);
-  const data=await requestJson(`${endpoint}?data=${encodeURIComponent(query)}`,{timeout:65000,headers:{'User-Agent':'EVBalkan/1.1 (https://github.com/tosilabs/ev-balkan-web)'}});
+  const data=await requestJson(`${endpoint}?data=${encodeURIComponent(query)}`,{timeout:35000,headers:{'User-Agent':'EVBalkan/1.1 (https://github.com/tosilabs/ev-balkan-web)'}});
   if(data.remark||!Array.isArray(data.elements)||data.elements.length<100)throw Error(data.remark||'Incomplete charging registry');
   const elements=data.elements.map(e=>{
     const tags=Object.fromEntries(Object.entries(e.tags??{}).filter(([k])=>['name','brand','operator','amenity','charge','fee','opening_hours','access','operational_status','disused:amenity','abandoned:amenity'].includes(k)||k.startsWith('socket:')||k.startsWith('addr:')));

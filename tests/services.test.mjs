@@ -16,7 +16,7 @@ test('An empty in-region result is valid and does not start external requests',a
 test('Missing registry and failed first service use the remaining service',async()=>{
   const urls=[];
   const data=await loadCharging(box,new AbortController().signal,{request:async url=>{urls.push(url);if(urls.length<3)throw Error('Service unavailable');return {elements:[]};}});
-  assert.equal(urls.length,3);assert.deepEqual(data.elements,[]);assert.match(urls[1],/kumi/);assert.match(urls[2],/overpass-api/);
+  assert.equal(urls.length,3);assert.deepEqual(data.elements,[]);assert.match(urls[1],/private\.coffee/);assert.match(urls[2],/overpass-api/);
 });
 test('Registry does not silently claim coverage outside its bounds',async()=>{
   assert.equal(containsBounds(snapshot.bounds,[33,21,34,22]),false);

@@ -49,7 +49,7 @@ Workflow kontrollon JavaScript-in dhe testet përpara publikimit të dosjes `dis
 
 - © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright). Të dhënat kanë licencë ODbL. Atribuimi shfaqet në hartë dhe fund të faqes. Çdo rezultat lidhet me regjistrin burimor. Regjistrat mund të mungojnë ose të jenë të vjetër.
 - Hartat online nga tile.openstreetmap.org. Nuk ruhen tiles për përdorim offline dhe nuk ka prefetch. Për trafik të madh duhet ofrues i përshtatshëm sipas [politikës së tiles](https://operations.osmfoundation.org/policies/tiles/).
-- [Overpass API](https://wiki.openstreetmap.org/wiki/Overpass_API) për karikuesit: overpass-api.de dhe si rezervë overpass.kumi.systems. Kërkesat kanë afat kohor dhe kufi memorie. Në dështim tregohet gabim; nuk paraqiten të dhëna të sajuara.
+- [Overpass API](https://wiki.openstreetmap.org/wiki/Overpass_API) për karikuesit: overpass-api.de dhe si rezervë overpass.private.coffee. Kërkesat kanë afat kohor dhe kufi memorie. Në dështim tregohet gabim; nuk paraqiten të dhëna të sajuara.
 - [Photon](https://github.com/komoot/photon) për qytete/adresa. Kërkohet vetëm kur shtypet butoni; nuk ka kërkesa automatike për çdo shkronjë. Përdorimi demonstrues nuk ka SLA.
 - [OSRM](https://project-osrm.org/) për itinerarin. Shërbim publik demonstrues, jo SLA prodhimi. Kërkohen itinerare deri në 1500 km. Distanca e karikuesit nga itinerari është gjeometrike; nuk përfaqëson devijimin me veturë, minutat shtesë ose qasje nga e njëjta anë e autostradës. Itinerari i Audi-t mund të ndryshojë.
 - Nuk ka status të lirë/i zënë në kohë reale. `charge`/`fee` janë tarifa të raportuara; nuk konvertohen në €/kWh dhe duhen konfirmuar te operatori.

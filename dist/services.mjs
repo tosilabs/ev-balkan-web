@@ -20,7 +20,7 @@ export async function loadCharging(box,signal,{request=requestJson}={}){
   }catch(error){if(signal?.aborted)throw error;}
   const query=`[out:json][timeout:12][maxsize:16777216];nwr["amenity"="charging_station"](${box.join(',')});out tags center;`;
   let lastError;
-  for(const endpoint of ['https://overpass.kumi.systems/api/interpreter','https://overpass-api.de/api/interpreter']){
+  for(const endpoint of ['https://overpass.private.coffee/api/interpreter','https://overpass-api.de/api/interpreter']){
     try{const data=await request(`${endpoint}?data=${encodeURIComponent(query)}`,{signal,timeout:16000});
       if(data.remark||!Array.isArray(data.elements))throw Error('Burimi nuk e përfundoi kërkimin. Provo rreze më të vogël.');
       return data;
