@@ -205,12 +205,12 @@ function syncActive(){$('active-toggle').setAttribute('aria-pressed',String($('o
 function applyOperating(preserve=true){
  syncActive();if(!lastSearch||savedView)return;
  stations=$('only-active').checked?workingOnly(candidates):candidates;shown=Math.min(12,stations.length);
- const {requestMode,routeKm,line,center}=lastSearch;
+ const {requestMode,routeKm,line,center,fetchedAt}=lastSearch;
  $('results-title').textContent=$('only-active').checked?'Të konfirmuar në punë':requestMode==='route'?'Karikues përgjatë rrugës':requestMode==='place'?'Karikues pranë vendit':'Karikues pranë teje';
  $('results-eyebrow').textContent=requestMode==='route'?`ITINERAR ${routeKm.toFixed(0)} KM`:'NDALESA TË MUNDSHME';
  $('result-count').textContent=String(stations.length);$('result-count').hidden=false;
  const counts={working:0,offline:0,unknown:0};for(const s of candidates)counts[currentOperating(s).key]++;
- toast(`${counts.working} në punë · ${counts.offline} jashtë shërbimit · ${counts.unknown} të pakonfirmuar. Status aktual nga Fines, kur ofrohet. Në punë mund të jetë edhe i zënë. ${requestMode==='route'?'Distanca nga vija e itinerarit, jo devijimi rrugor.':'Distanca në vijë ajrore.'}`);
+ toast(`${counts.working} në punë · ${counts.offline} jashtë shërbimit · ${counts.unknown} të pakonfirmuar. ${fetchedAt?'Regjistri u shkarkua më '+new Date(fetchedAt).toLocaleDateString('sq-AL')+'. ':''}Status aktual nga Fines, kur ofrohet. Në punë mund të jetë edhe i zënë. ${requestMode==='route'?'Distanca nga vija e itinerarit, jo devijimi rrugor.':'Distanca në vijë ajrore.'}`);
  renderCards();drawResults(line,center,preserve);
 }
 function changeActive(){
@@ -252,7 +252,7 @@ $('search-form').addEventListener('submit',async event=>{
     toast('Duke kontrolluar statusin te operatorët që ofrojnë të dhëna aktuale…');
     const checked=await checkOperating(parseStations(data,options,center,line),{signal:controller.signal,minPower:options.minPower});
     if(active!==controller)return;
-    candidates=checked;lastSearch={line,center,requestMode,routeKm};
+    candidates=checked;lastSearch={line,center,requestMode,routeKm,fetchedAt:data.fetchedAt};
     const fresh=new Map(candidates.map(s=>[s.id,s]));
     if(favourites.some(s=>fresh.has(s.id))){favourites=favourites.map(s=>fresh.get(s.id)||s);storage.set('evb-favourites',favourites);}
     applyOperating(false);
