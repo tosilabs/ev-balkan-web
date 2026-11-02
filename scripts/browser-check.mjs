@@ -15,7 +15,7 @@ const server=createServer(async(req,res)=>{
 await new Promise(resolve=>server.listen(8080,'127.0.0.1',resolve));
 let browser,page;
 const errors=[];
-const station={type:'node',id:123456789,lat:41.999,lon:21.426,tags:{amenity:'charging_station',name:'Karikues prove',operator:'Operator prove','socket:type2_combo':'2','socket:type2_combo:output':'150 kW','addr:city':'Shkup'}};
+const station={type:'node',id:123456789,lat:41.999,lon:21.426,tags:{amenity:'charging_station',name:'Karikues prove',operator:'Eldrive',wikimedia_commons:'File:Test charging point.png',description:'Charging point beside the entrance','socket:type2_combo':'2','socket:type2_combo:output':'150 kW','addr:city':'Shkup'}};
 const contextOptions={viewport:{width:390,height:844},isMobile:true,hasTouch:true,geolocation:{latitude:41.9981,longitude:21.4254},permissions:['geolocation'],serviceWorkers:'block'};
 const waitSearch=page=>page.waitForFunction(()=>!document.body.classList.contains('busy')&&!document.querySelector('#result-count').hidden);
 async function searchPlace(page,mode){
@@ -33,6 +33,8 @@ try{
  await page.addInitScript(()=>Object.defineProperty(navigator,'share',{configurable:true,value:undefined}));
  await page.route('**/data/charging-balkans.json',route=>route.fulfill({json:{bounds:[34,12,48.5,30],fetchedAt:new Date().toISOString(),elements:[station]}}));
  await page.route(/https:\/\/(photon\.komoot\.io|overpass-api\.de|overpass\.private\.coffee)\//,route=>route.abort());
+ await page.route('https://commons.wikimedia.org/w/api.php**',route=>route.fulfill({json:{query:{pages:{1:{imageinfo:[{mime:'image/png',thumburl:'https://upload.wikimedia.org/test-charging.png',extmetadata:{Artist:{value:'Test Photographer'},LicenseShortName:{value:'CC BY 4.0'},LicenseUrl:{value:'https://creativecommons.org/licenses/by/4.0/'}}}]}}}}}));
+ await page.route('https://upload.wikimedia.org/test-charging.png',route=>route.fulfill({contentType:'image/png',body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNQqAj4DwADjAHo3Pmz1AAAAABJRU5ErkJggg==','base64')}));
  await page.route('https://router.project-osrm.org/route/**',route=>route.fulfill({json:{code:'Ok',routes:[{distance:35000,geometry:{coordinates:[[21.4254,41.9981],[21.426,41.999],[21.5,42.1]]}}]}}));
  await page.goto('http://127.0.0.1:8080/',{waitUntil:'networkidle',timeout:60000});
  await waitSearch(page);
@@ -42,9 +44,21 @@ try{
  assert.equal(await page.locator('#search-dialog').isVisible(),false,'Fields should not obstruct initial map');
  assert.equal(await page.locator('#radius-badge').innerText(),'10 km');
  assert.equal(await page.locator('.leaflet-marker-icon').count(),1);
+ assert.equal(await page.locator('.leaflet-marker-icon .map-marker').first().innerText(),'1');
+ assert.equal(await page.locator('.leaflet-marker-icon .speed-ultra').count(),1);
+ assert.ok(await page.locator('.map-marker').first().evaluate(el=>el.getBoundingClientRect().width)<=26,'Map icon is too large');
  await page.locator('#list-open').click();
  await page.getByRole('heading',{name:'Karikues prove'}).waitFor();
  assert.match(await page.locator('.station-card').innerText(),/150 kW/);
+ assert.equal(await page.locator('.station-number').first().innerText(),'1');
+ await page.locator('.station-more summary').first().click();
+ assert.equal(await page.getByRole('link',{name:'Faqja e operatorit',exact:false}).getAttribute('href'),'https://www.eldrive.eu/');
+ assert.match(await page.getByRole('link',{name:'Google Play',exact:false}).getAttribute('href'),/com.fortum.eldrive/);
+ assert.match(await page.getByRole('link',{name:'Kërko reviews dhe foto në Maps',exact:false}).getAttribute('href'),/google.com\/maps\/search/);
+ await page.getByRole('button',{name:'Ngarko foton e regjistruar'}).click();
+ await page.locator('.location-photo img').waitFor();
+ await page.waitForFunction(()=>document.querySelector('.location-photo img')?.naturalWidth>0);
+ assert.match(await page.locator('.location-photo').innerText(),/Test Photographer.*CC BY 4.0/);
  await page.getByRole('button',{name:'Ruaj: Karikues prove',exact:true}).click();
  assert.equal(await page.locator('#saved-count').innerText(),'1');
  await page.getByRole('button',{name:'Dërgo te Audi'}).click();
@@ -75,6 +89,7 @@ try{
  await page.getByRole('button',{name:'Gjej karikues'}).click();await waitSearch(page);
  assert.equal(await page.locator('.leaflet-marker-icon').count(),230,'Markers must not be capped at 200');
  assert.equal(await page.locator('#result-count').innerText(),'230');
+ assert.equal(await page.locator('.map-marker').last().innerText(),'230');
  await mkdir('browser-results',{recursive:true});await page.screenshot({path:'browser-results/fullscreen-mobile.png'});
  await page.setViewportSize({width:1440,height:1000});await page.screenshot({path:'browser-results/fullscreen-desktop.png'});
  let captured;
@@ -97,7 +112,7 @@ try{
  assert.ok(Number(await livePage.locator('#result-count').innerText())>0);
  await livePage.screenshot({path:'browser-results/real-charging-fullscreen.png'});
  await live.close();
- console.log('PASS: fullscreen phone map, 10 km default, all 230 markers, hidden fields/list, three modes, filters, saved stations, sharing fallback and real downloaded chargers near Skopje with public search services blocked');
+ console.log('PASS: fullscreen phone map, 10 km default, all 230 small numbered markers, categories, operator links, attributed Commons photo, external reviews links, hidden fields/list, three modes, filters, saved stations, sharing fallback and real downloaded chargers near Skopje with public search services blocked');
  console.log('Live occupancy, GPS hardware and actual myAudi delivery are not tested.');
 }catch(error){
  if(page){console.error('PAGE STATUS:',await page.locator('#status').innerText().catch(()=>''));console.error('BROWSER ERRORS:',errors);await mkdir('browser-results',{recursive:true});await page.screenshot({path:'browser-results/failure.png'}).catch(()=>{});}

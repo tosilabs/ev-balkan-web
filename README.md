@@ -1,8 +1,20 @@
-# EV Balkan Web — versioni 1.2
+# EV Balkan Web — versioni 1.3
 
 **Gjendja:** versioni burimor është përgatitur dhe kontrollet lokale kaluan. Kontrollo ekzekutimin më të fundit te Actions për gjendjen e publikimit. Nëse Pages nuk është aktivizuar ende, ndiq hapat te seksioni GitHub Pages.
 
 Web-faqe në shqip për kërkim karikuesish në Ballkan, e përshtatur për telefon dhe Audi e-tron evropian 2023. Nuk kërkon APK, llogari ose çelës API. Burimi i karikuesve është OpenStreetMap, jo lista e plotë e operatorëve.
+
+## Detajet e lokacioneve (v1.3)
+
+Shenjat vizuale në hartë janë 24 px, me numra që përputhen me rendin e listës së kërkimit aktual. Ngjyrat dhe filtri ndjekin kategoritë EAFO/AFIR: AC <7.4 kW i ngadaltë, 7.4–22 kW mesatar, >22 kW i shpejtë; DC <50 kW i ngadaltë, 50–<150 kW i shpejtë dhe ≥150 kW ultra. ≥350 kW shënohet veçmas në detaje. Mungesa e fuqisë ose llojit AC/DC jep “Pa klasifikim”, jo vlerë të hamendësuar. Kategoria e lokacionit bazohet te lidhësi i zgjedhur me fuqinë më të lartë për të cilin dihet lloji AC/DC.
+
+Burimi: https://alternative-fuels-observatory.ec.europa.eu/general-information/recharging-systems . Kjo nuk është shpejtësi e garantuar për veturën konkrete.
+
+Seksioni “Foto, operatori dhe informacione” përfshin lidhësit, orarin, përshkrimin, qasjen, pagesat dhe kontaktet kur janë në regjistër. Lidhjet e operatorit merren nga OSM; një direktori e kufizuar plotëson lidhjet zyrtare për Eldrive, Charge&GO, Tesla, OneCharge dhe EVN Macedonia të identifikuar qartë. EVN dhe Petrol nuk lidhen automatikisht me një kompani të një vendi tjetër kur emri është i paqartë.
+
+Fotot Commons ngarkohen vetëm me veprim të përdoruesit, me autorin, licencën dhe lidhjen origjinale kur metadata lejon shfaqjen. Lidhjet e tjera të fotove dhe Mapillary hapen në burimin e tyre. Nuk kopjohen foto nga Google/PlugShare dhe nuk sajohet një foto për lokacionet ku mungon. Reviews ofrohen si kërkim i jashtëm në Google Maps, pa importuar yje ose komente dhe pa garantuar përputhje automatike të listing-ut. Përdoruesi kontrollon vendin që hapet.
+
+Regjistri i eksportuar ka `schemaVersion: 2` dhe ruan fushat shtesë. Një eksport i vjetër nuk ripërdoret si eksport i freskët me metadata të plota; në rast dështimi mund të ruhet versioni i mëparshëm me fushat që disponon.
 
 ## Pamja e hartës (v1.2)
 
@@ -61,7 +73,9 @@ Workflow kontrollon JavaScript-in dhe testet përpara publikimit të dosjes `dis
 - Nuk ka status të lirë/i zënë në kohë reale. `charge`/`fee` janë tarifa të raportuara; nuk konvertohen në €/kWh dhe duhen konfirmuar te operatori.
 - Nuk ka optimizim ndalesash sipas baterisë dhe nuk lexohen të dhëna nga vetura.
 - Android Auto nuk shfaq një web-faqe të zakonshme drejtpërdrejt. Përdor myAudi për destinacionin ose një aplikacion navigimi të instaluar.
-- Nuk ka lidhje automatike ose konfirmim dërgimi te Audi. Menuja e ndarjes duhet të provohet me myAudi; kur mungon ka alternativa.
+- Për fotot e kërkuara dërgohet emri i skedarit te Wikimedia Commons dhe merret thumbnail nga upload.wikimedia.org. Nuk dërgohet vendndodhja GPS atje.
+
+Nuk ka lidhje automatike ose konfirmim dërgimi te Audi. Menuja e ndarjes duhet të provohet me myAudi; kur mungon ka alternativa.
 
 ## Privatësia
 
