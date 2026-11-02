@@ -1,13 +1,20 @@
 import {mkdir,readFile,writeFile} from 'node:fs/promises';
 import {requestJson} from '../dist/services.mjs';
 const bounds=[34,12,48.5,30];
-const query=`[out:json][timeout:25][maxsize:268435456];nwr["amenity"="charging_station"](${bounds.join(',')});out tags center;`;
+const query=`[out:json][timeout:180][maxsize:268435456];nwr["amenity"="charging_station"](${bounds.join(',')});out tags center;`;
 const errors=[];
 let snapshot;
+try {
+ const previous=await requestJson('https://tosilabs.github.io/ev-balkan-web/data/charging-balkans.json',{timeout:10000});
+ if(previous.elements?.length>=100&&previous.fetchedAt&&Date.now()-Date.parse(previous.fetchedAt)<6*60*60*1000) {
+  snapshot=previous;console.log('Reusing recently downloaded registry:',previous.fetchedAt);
+ }
+}catch{}
 for(const endpoint of ['https://ovp.dresel.systems/api/interpreter','https://overpass.private.coffee/api/interpreter','https://overpass-api.de/api/interpreter']){
+ if(snapshot)break;
  try{
   console.log('Downloading charging registry:',endpoint);
-  const data=await requestJson(`${endpoint}?data=${encodeURIComponent(query)}`,{timeout:35000,headers:{'User-Agent':'EVBalkan/1.1 (https://github.com/tosilabs/ev-balkan-web)'}});
+  const data=await requestJson(`${endpoint}?data=${encodeURIComponent(query)}`,{timeout:195000,headers:{'User-Agent':'EVBalkan/1.1 (https://github.com/tosilabs/ev-balkan-web)'}});
   if(data.remark||!Array.isArray(data.elements)||data.elements.length<100)throw Error(data.remark||'Incomplete charging registry');
   const elements=data.elements.map(e=>{
     const tags=Object.fromEntries(Object.entries(e.tags??{}).filter(([k])=>['name','brand','operator','amenity','charge','fee','opening_hours','access','operational_status','disused:amenity','abandoned:amenity'].includes(k)||k.startsWith('socket:')||k.startsWith('addr:')));
