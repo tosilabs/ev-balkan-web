@@ -1,0 +1,136 @@
+{
+  "date": "2026-11-02",
+  "projectCommit": "f07003f1fe08905d4727347d191b762c1e8d6469",
+  "sourceFilesInspected": 54,
+  "repositories": [
+    {
+      "repository": "RiyaSubash/EV_stations-master",
+      "commit": "f8132e3e54f520a43f924d4a7096d69e377ba039",
+      "files": [
+        "README.md",
+        "ev_search.js",
+        "ev_routing.js",
+        "calculateLongDistanceEVRoute.js",
+        "chargingAvailability.js",
+        "ev_model.js",
+        "traffic.js",
+        "package.json"
+      ]
+    },
+    {
+      "repository": "cs1m2414238/vidyutEV-1.0",
+      "commit": "3d063eb8f95ff57d829c37c3f1081fcbd1926b0f",
+      "files": [
+        "README.md",
+        "vidyut-mobile/LICENSE",
+        "vidyut-backend/scripts/generate_district_chargers.py",
+        "vidyut-backend/src/main/resources/demo/chargers-india.json",
+        "vidyut-backend/src/main/java/com/vidyut/autopilot/service/ChargingRouteOptimizer.java",
+        "vidyut-backend/src/main/java/com/vidyut/autopilot/service/VehicleChargingProfileService.java",
+        "vidyut-backend/src/main/java/com/vidyut/autopilot/service/SafeRecoveryPlanner.java",
+        "vidyut-backend/src/main/java/com/vidyut/routing/service/RouteCorridorService.java",
+        "vidyut-backend/src/main/java/com/vidyut/payment/service/PaymentServiceImpl.java",
+        "vidyut-backend/src/main/java/com/vidyut/station/service/ChargingStationServiceImpl.java",
+        "vidyut-web/src/services/stations.ts",
+        "vidyut-web/src/data/mockData.ts",
+        "vidyut-ai/agent/vidyut_agent/tools.py",
+        "vidyut-backend/src/main/java/com/vidyut/autopilot/config/DistrictDemoChargerInitializer.java",
+        "vidyut-backend/src/test/java/com/vidyut/autopilot/service/ChargingRouteOptimizerTest.java",
+        "vidyut-backend/src/test/java/com/vidyut/autopilot/service/SafeRecoveryPlannerTest.java"
+      ]
+    },
+    {
+      "repository": "Unseencoderz/ChargeEase",
+      "commit": "e746da7a4a4775dea31bd2176749750501838087",
+      "files": [
+        "README.md",
+        "backend/server.js",
+        "frontend/src/services/api.ts",
+        "frontend/src/utils/constants.ts",
+        "frontend/src/components/common/GoogleMap.tsx",
+        "frontend/src/pages/BookingPage.tsx",
+        "frontend/src/pages/StationDetailsPage.tsx",
+        "frontend/src/hooks/useAuth.tsx",
+        "frontend/src/types/index.ts",
+        "frontend/package.json"
+      ]
+    },
+    {
+      "repository": "matthewgall/homeassistant-evfinder",
+      "commit": "2208145b32e0e8e9d865da9a2419c3cacf009921",
+      "files": [
+        "README.md",
+        "LICENSE",
+        "custom_components/evfinder/coordinator.py",
+        "custom_components/evfinder/const.py",
+        "custom_components/evfinder/sensor.py",
+        "custom_components/evfinder/binary_sensor.py",
+        "custom_components/evfinder/config_flow.py"
+      ]
+    },
+    {
+      "repository": "evpin/evpin",
+      "commit": "6be486a1f0c068d940e1c0c2a1a4be529c619476",
+      "files": [
+        "LICENSE.md",
+        "backend/insert_ev_chargers.py",
+        "backend/models/models.py",
+        "backend/routers/ev_chargers.py",
+        "backend/apis/olamaps/location.py",
+        "frontend/src/components/Map/Map.tsx",
+        "frontend/src/components/Markers/Marker.tsx",
+        "frontend/src/components/ev-station-modal.tsx",
+        "frontend/src/api/getEVStationByPoint.ts",
+        "backend/main.py"
+      ]
+    },
+    {
+      "repository": "cryptprosteel/ev-charge-finder",
+      "commit": "71366a5ab7ee70f2d21c7e879db319921eb4e389",
+      "files": [
+        "README.md"
+      ]
+    },
+    {
+      "repository": "rvssrao/ev-charging-finder",
+      "commit": "6bd120201c18dbecff4569a660281d34ccdfaca6",
+      "files": [
+        "README.md",
+        "index.html"
+      ]
+    }
+  ],
+  "apiChecks": {
+    "evaround": {
+      "checkedAt": "2026-11-02T22:30:22Z",
+      "generatedAt": "2026-11-02T22:12:41Z",
+      "returned": 15038,
+      "withinCoordinates": {
+        "Skopje": 0,
+        "Prishtina": 0,
+        "Sofia": 0,
+        "regionBounds": 0
+      },
+      "regionBounds": [
+        34,
+        12,
+        48.5,
+        30
+      ],
+      "corsHeaderObserved": false,
+      "run": "https://github.com/tosilabs/ev-balkan-web/actions/runs/41537790771"
+    },
+    "indiaAPI": {
+      "checkedAt": "2026-11-02T22:27:54Z",
+      "center": {
+        "lat": 41.9981,
+        "lon": 21.4254
+      },
+      "radiusKm": 100,
+      "status": 200,
+      "count": 0,
+      "run": "https://github.com/tosilabs/ev-balkan-web/actions/runs/41537447885"
+    }
+  },
+  "scope": "Static code review and anonymous read-only API checks; external application test suites were not executed."
+}
