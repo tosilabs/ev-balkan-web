@@ -1,6 +1,6 @@
-import {point,coordinates,distance,bounds,settings,parseStations,destinationUrl,shareData,navigationUrl} from './core.mjs';
-import {localPlaces} from './cities.mjs';
-import {requestJson as json,loadCharging} from './services.mjs';
+import {point,coordinates,distance,bounds,settings,parseStations,destinationUrl,shareData,navigationUrl} from './core.mjs?v=1.2';
+import {localPlaces} from './cities.mjs?v=1.2';
+import {requestJson as json,loadCharging} from './services.mjs?v=1.2';
 const $=id=>document.getElementById(id);
 const storage={get(key,fallback){try{return JSON.parse(localStorage.getItem(key))??fallback;}catch{return fallback;}},set(key,value){try{localStorage.setItem(key,JSON.stringify(value));}catch{toast('Telefoni nuk lejoi ruajtjen lokale. Kërkimi mbetet i përdorshëm.');}}};
 let mode='near',active=null,stations=[],shown=0,savedView=false,selectedStation=null,map=null,markers=null,routeLayer=null,searchMarker=null,picking=false,radiusLayer=null,viewingRadius=10;

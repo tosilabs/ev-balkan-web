@@ -11,7 +11,7 @@ test('Every DOM id referenced by the app exists exactly once',()=>{
 test('PWA and linked local assets are packaged for subdirectory hosting',()=>{
   const manifest=JSON.parse(readFileSync(new URL('../dist/manifest.webmanifest',import.meta.url),'utf8'));
   assert.equal(manifest.start_url,'./');assert.equal(manifest.scope,'./');
-  for(const m of html.matchAll(/(?:src|href)="\.\/([^"]+)"/g))assert.ok(existsSync(new URL('../dist/'+m[1],import.meta.url)),`Missing asset ${m[1]}`);
+  for(const m of html.matchAll(/(?:src|href)="\.\/([^"]+)"/g))assert.ok(existsSync(new URL('../dist/'+m[1].split('?')[0],import.meta.url)),`Missing asset ${m[1]}`);
 });
 test('Station metadata uses DOM text nodes instead of HTML injection',()=>{
   assert.ok(!/\.innerHTML\s*=/.test(app));
