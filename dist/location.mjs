@@ -5,8 +5,9 @@ export function locationFix(position,now=Date.now()){
 }
 // A separate layer preserves the device marker when search results and routes change.
 export function createLocationLayer(map,L){
+ // Chargers stay clickable when the vehicle is at a charging point.
  let marker,ring,fix,unavailable=false;
- for(const [name,z] of [['locationAccuracy',460],['devicePosition',650]])if(!map.getPane(name)){map.createPane(name);map.getPane(name).style.zIndex=String(z);}
+ for(const [name,z] of [['locationAccuracy',460],['devicePosition',595]])if(!map.getPane(name)){map.createPane(name);map.getPane(name).style.zIndex=String(z);}
  const refresh=()=>{
   if(!marker||!fix)return;
   const stale=unavailable||Date.now()-fix.at>120000;
