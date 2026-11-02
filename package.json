@@ -1,0 +1,1 @@
+{"name":"ev-balkan-web","version":"1.0.0","private":true,"type":"module","scripts":{"test":"node --test","check":"node --check dist/app.mjs && node --check dist/core.mjs && node --check dist/sw.js","start":"python3 -m http.server 8080 --directory dist"},"engines":{"node":">=20"}}
