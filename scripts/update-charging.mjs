@@ -6,11 +6,11 @@ const errors=[];
 let snapshot;
 try {
  const cached=JSON.parse(await readFile('dist/data/osm-base.json','utf8').catch(()=>readFile('dist/data/charging-balkans.json','utf8')));
- if(!cached.sourcesMerged&&cached.schemaVersion>=2&&cached.elements?.length>=100&&cached.fetchedAt&&Date.now()-Date.parse(cached.fetchedAt)<6*60*60*1000){snapshot=cached;console.log('Reusing build cache registry:',cached.fetchedAt);}
+ if(!cached.sourcesMerged&&cached.schemaVersion>=3&&cached.elements?.length>=100&&cached.fetchedAt&&Date.now()-Date.parse(cached.fetchedAt)<6*60*60*1000){snapshot=cached;console.log('Reusing build cache registry:',cached.fetchedAt);}
 }catch{}
 if(!snapshot)try {
  const previous=await requestJson('https://tosilabs.github.io/ev-balkan-web/data/osm-base.json',{timeout:10000}).catch(()=>requestJson('https://tosilabs.github.io/ev-balkan-web/data/charging-balkans.json',{timeout:10000}));
- if(!previous.sourcesMerged&&previous.schemaVersion>=2&&previous.elements?.length>=100&&previous.fetchedAt&&Date.now()-Date.parse(previous.fetchedAt)<6*60*60*1000) {
+ if(!previous.sourcesMerged&&previous.schemaVersion>=3&&previous.elements?.length>=100&&previous.fetchedAt&&Date.now()-Date.parse(previous.fetchedAt)<6*60*60*1000) {
   snapshot=previous;console.log('Reusing recently downloaded registry:',previous.fetchedAt);
  }
 }catch{}
@@ -21,10 +21,10 @@ for(const endpoint of ['https://ovp.dresel.systems/api/interpreter','https://ove
   const data=await requestJson(`${endpoint}?data=${encodeURIComponent(query)}`,{timeout:195000,headers:{'User-Agent':'EVBalkan/1.1 (https://github.com/tosilabs/ev-balkan-web)'}});
   if(data.remark||!Array.isArray(data.elements)||data.elements.length<100)throw Error(data.remark||'Incomplete charging registry');
   const elements=data.elements.map(e=>{
-    const tags=Object.fromEntries(Object.entries(e.tags??{}).filter(([k])=>['name','brand','operator','amenity','charge','fee','opening_hours','access','operational_status','disused:amenity','abandoned:amenity','network','website','image','wikimedia_commons','mapillary','description','description:en','description:sq','phone','contact:phone','contact:website','operator:website','brand:website','network:website','capacity','check_date','survey:date'].includes(k)||k.startsWith('socket:')||k.startsWith('addr:')||k.startsWith('payment:')||k.startsWith('authentication:')));
+    const tags=Object.fromEntries(Object.entries(e.tags??{}).filter(([k])=>['name','brand','operator','amenity','charge','fee','opening_hours','access','operational_status','disused:amenity','abandoned:amenity','network','website','image','wikimedia_commons','mapillary','description','description:en','description:sq','phone','contact:phone','contact:website','operator:website','brand:website','network:website','capacity','check_date','survey:date','email','contact:email','note','wheelchair','covered','lit','supervised','parking:fee','maxstay','manufacturer','model','ref','ref:EU:EVSE','ref:EU:EVSE:pool'].includes(k)||k.startsWith('socket:')||k.startsWith('addr:')||k.startsWith('payment:')||k.startsWith('authentication:')));
     const p=e.center??e;return {type:e.type,id:e.id,lat:p.lat,lon:p.lon,tags};
   }).filter(e=>Number.isFinite(e.lat)&&Number.isFinite(e.lon));
-  snapshot={schemaVersion:2,fetchedAt:new Date().toISOString(),bounds,license:'ODbL-1.0',attribution:'© OpenStreetMap contributors',source:'https://www.openstreetmap.org/copyright',elements};
+  snapshot={schemaVersion:3,fetchedAt:new Date().toISOString(),bounds,license:'ODbL-1.0',attribution:'© OpenStreetMap contributors',source:'https://www.openstreetmap.org/copyright',elements};
   break;
  }catch(error){console.error(endpoint,error.message);errors.push(error.message);}
 }

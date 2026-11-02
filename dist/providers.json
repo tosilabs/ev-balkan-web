@@ -1,0 +1,10 @@
+{"providers":[
+{"id":"fines","name":"Fines Charging","website":"https://finescharging.com/","appPage":"https://finescharging.com/en/activate","android":"https://play.google.com/store/apps/details?id=io.cordova.finescharging","phone":"+359 2 493 0212","email":"support@finescharging.com","help":"Aplikacion, RFID ose QR për karikim si vizitor; kontrollo kushtet e pikës.","source":"https://finescharging.com/en/activate"},
+{"id":"eldrive","name":"Eldrive","website":"https://www.eldrive.eu/","appPage":"https://www.eldrive.eu/bg-en/charging","android":"https://play.google.com/store/apps/details?id=com.fortum.eldrive","ios":"https://apps.apple.com/app/id1382692672","source":"https://www.eldrive.eu/bg-en/charging"},
+{"id":"chargego","name":"charge&GO","website":"https://chargego.rs/","appPage":"https://chargego.rs/en/chargegoapp/","android":"https://play.google.com/store/apps/details?id=com.charge_and_go_mobile","ios":"https://apps.apple.com/app/id1662961378","phone":"+381 66 803 17 00","email":"podrska@chargego.rs","logo":"https://chargego.rs/wp-content/uploads/2024/06/chargego-dva-reda-beli.png","logoTheme":"dark","source":"https://chargego.rs/en/chargegoapp/"},
+{"id":"tesla","name":"Tesla","website":"https://www.tesla.com/findus","appPage":"https://www.tesla.com/app/landing","source":"https://www.tesla.com/app/landing"},
+{"id":"onecharge","name":"OneCharge · Petrol","website":"https://onecharge.eu/","appPage":"https://go.petrol.si/mobilnost/onecharge","source":"https://go.petrol.si/mobilnost/onecharge"},
+{"id":"evn-mk","name":"EVN · Maqedonia e Veriut","website":"https://emobility.evn.mk/","appPage":"https://emobility.evn.mk/Directpay.aspx?lang=en","appLabel":"Nisja e karikimit / roaming","source":"https://emobility.evn.mk/"},
+{"id":"elen","name":"ELEN · HEP","website":"https://elen.hep.hr/","appPage":"https://elen.hep.hr/","source":"https://elen.hep.hr/"},
+{"id":"elpe","name":"ElpeFuture · EKO Charge&Go","website":"https://elpefuture.gr/","appPage":"https://elpefuture.gr/","email":"info@elpefuture.gr","source":"https://elpefuture.gr/assets/html/qa/ElpeFuture_QA_V3_EN.html"}
+]}

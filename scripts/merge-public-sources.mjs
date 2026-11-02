@@ -1,11 +1,12 @@
 import {readFile,writeFile} from 'node:fs/promises';
-import {myfahLocations,finesLocations,zagrebLocations,mergeLocations} from './source-adapters.mjs';
+import {myfahLocations,finesLocations,zagrebLocations,ocmLocations,mergeLocations} from './source-adapters.mjs';
 import {requestJson} from '../dist/services.mjs';
 const base=JSON.parse(await readFile('dist/data/osm-base.json','utf8'));
 const fetchedAt=new Date().toISOString(),sources=[{id:'osm',name:'OpenStreetMap',country:'Ballkani dhe zona përreth',status:'active',count:base.elements.length,checkedAt:base.fetchedAt,url:'https://www.openstreetmap.org/copyright',license:'ODbL-1.0'}];
 const extra=[];
 async function input(name){try{return JSON.parse(await readFile(`.source-cache/${name}.json`,'utf8'));}catch{return {error:'Feed was not downloaded'};}}
 const configs=[
+ {id:'ocm',name:'Open Charge Map · kontributet me licencë të hapur',country:'AL, BA, BG, GR, HR, ME, MK, RO, RS, SI, XK',url:'https://github.com/openchargemap/ocm-export',license:'CC BY 4.0 · vetëm DataProviderID 1',normalize:ocmLocations},
  {id:'myfah',name:'MYFAH · regjistri kombëtar i Greqisë',country:'GR',url:'https://electrokinisi.yme.gov.gr/public/HelpMyfah/PublicData/',license:'Të dhëna publike MYFAH / AFIR',normalize:myfahLocations},
  {id:'fines',name:'Fines Charging · API publike',country:'BG',url:'https://finescharging.com/public-api',license:'API publike Fines; atribuim burimi',normalize:async data=>finesLocations(data,(await input('fines-live')).data,fetchedAt)},
  {id:'zagreb',name:'Qyteti i Zagrebit · data.gov.hr',country:'HR · Zagreb',url:'https://data.gov.hr/ckan/en/dataset/geoportal-elektricne-punionice',license:'Otvorena dozvola (OD)',normalize:zagrebLocations}

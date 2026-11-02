@@ -15,7 +15,7 @@ const server=createServer(async(req,res)=>{
 await new Promise(resolve=>server.listen(8080,'127.0.0.1',resolve));
 let browser,page;
 const errors=[];
-const station={type:'node',id:123456789,lat:41.999,lon:21.426,tags:{amenity:'charging_station',name:'Karikues prove',operator:'Eldrive',wikimedia_commons:'File:Test charging point.png',description:'Charging point beside the entrance','socket:type2_combo':'2','socket:type2_combo:output':'150 kW','addr:city':'Shkup'}};
+const station={type:'node',id:123456789,lat:41.999,lon:21.426,tags:{amenity:'charging_station',name:'Karikues prove',operator:'Eldrive',wikimedia_commons:'File:Test charging point.png',description:'Charging point beside the entrance','socket:type2':'2','socket:type2:output':'22 kW','contact:email':'test@example.org',wheelchair:'yes','socket:type2_combo':'2','socket:type2_combo:output':'150 kW','addr:city':'Shkup'}};
 const contextOptions={viewport:{width:390,height:844},isMobile:true,hasTouch:true,geolocation:{latitude:41.9981,longitude:21.4254},permissions:['geolocation'],serviceWorkers:'block'};
 const waitSearch=page=>page.waitForFunction(()=>!document.body.classList.contains('busy')&&!document.querySelector('#result-count').hidden);
 async function searchPlace(page,mode){
@@ -31,6 +31,8 @@ try{
  const context=await browser.newContext(contextOptions);page=await context.newPage();
  page.on('pageerror',error=>errors.push(error.message));
  await page.addInitScript(()=>Object.defineProperty(navigator,'share',{configurable:true,value:undefined}));
+ await page.route('**/data/providers.json',route=>route.fulfill({json:{providers:[{id:'eldrive',logo:'https://www.eldrive.eu/test-logo.png',source:'https://www.eldrive.eu/bg-en/charging'}]}}));
+ await page.route('https://www.eldrive.eu/test-logo.png',route=>route.fulfill({contentType:'image/png',body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNQqAj4DwADjAHo3Pmz1AAAAABJRU5ErkJggg==','base64')}));
  await page.route('**/data/charging-balkans.json',route=>route.fulfill({json:{bounds:[34,12,48.5,30],fetchedAt:new Date().toISOString(),elements:[station]}}));
  await page.route(/https:\/\/(photon\.komoot\.io|overpass-api\.de|overpass\.private\.coffee)\//,route=>route.abort());
  await page.route('https://commons.wikimedia.org/w/api.php**',route=>route.fulfill({json:{query:{pages:{1:{imageinfo:[{mime:'image/png',thumburl:'https://upload.wikimedia.org/test-charging.png',extmetadata:{Artist:{value:'Test Photographer'},LicenseShortName:{value:'CC BY 4.0'},LicenseUrl:{value:'https://creativecommons.org/licenses/by/4.0/'}}}]}}}}}));
@@ -51,6 +53,9 @@ try{
  await page.getByRole('heading',{name:'Karikues prove'}).waitFor();
  assert.match(await page.locator('.station-card').innerText(),/150 kW/);
  assert.equal(await page.locator('.station-number').first().innerText(),'1');
+ await page.locator('.provider-logo img').first().waitFor();await page.waitForFunction(()=>document.querySelector('.provider-logo img')?.naturalWidth>0);
+ assert.equal(await page.locator('.connector-row').count(),2);assert.match(await page.locator('.station-facts').first().innerText(),/Tarifa e raportuar/);
+ assert.match(await page.getByRole('link',{name:'Email',exact:false}).getAttribute('href'),/mailto:/);
  await page.locator('.station-more summary').first().click();
  assert.equal(await page.getByRole('link',{name:'Faqja e operatorit',exact:false}).getAttribute('href'),'https://www.eldrive.eu/');
  assert.match(await page.getByRole('link',{name:'Google Play',exact:false}).getAttribute('href'),/com.fortum.eldrive/);
@@ -125,6 +130,25 @@ try{
  await operatorPage.locator('.station-more summary').first().click();await operatorPage.getByRole('button',{name:'Kontrollo disponueshmërinë',exact:true}).click();
  await operatorPage.getByText(/1 nga 2 lidhës të lirë/).waitFor();await operatorPage.getByRole('button',{name:'Kontrollo përsëri',exact:true}).click();assert.equal(liveCalls,1,'Live API must respect two minute cache');
  await operatorContext.close();
+ const denied=await browser.newContext({...contextOptions,permissions:[]}),deniedPage=await denied.newPage();let routeRequest='';
+ await deniedPage.addInitScript(()=>{window.gpsCalls=0;Object.defineProperty(navigator,'geolocation',{configurable:true,value:{getCurrentPosition(ok,fail){window.gpsCalls++;fail({code:1});}}});});
+ await deniedPage.route('**/data/charging-balkans.json',route=>route.fulfill({json:{bounds:[34,12,48.5,30],fetchedAt:new Date().toISOString(),elements:[station]}}));
+ await deniedPage.route('https://router.project-osrm.org/route/**',route=>{routeRequest=route.request().url();return route.fulfill({json:{code:'Ok',routes:[{distance:35000,geometry:{coordinates:[[21.4254,41.9981],[21.426,41.999],[21.5,42.1]]}}]}});});
+ await deniedPage.goto('http://127.0.0.1:8080/',{waitUntil:'networkidle'});await deniedPage.locator('#location-note').waitFor();
+ assert.equal(await deniedPage.locator('#search-dialog').isVisible(),true);assert.equal(await deniedPage.locator('#tab-place').getAttribute('aria-selected'),'true');
+ await deniedPage.getByRole('tab',{name:'Në rrugë'}).click();await deniedPage.locator('#destination').fill('42.1,21.5');
+ await deniedPage.getByRole('button',{name:'Gjej karikues'}).click();await deniedPage.locator('#origin-manual').waitFor();
+ assert.equal(await deniedPage.locator('#origin-mode').inputValue(),'manual');assert.equal(await deniedPage.locator('#destination').inputValue(),'42.1,21.5');
+ const gpsCalls=await deniedPage.evaluate(()=>window.gpsCalls);
+ await deniedPage.locator('#origin').fill('41.9981,21.4254');await deniedPage.getByRole('button',{name:'Gjej karikues'}).click();await waitSearch(deniedPage);
+ assert.match(routeRequest,/21.4254,41.9981;21.5,42.1/);assert.equal(await deniedPage.evaluate(()=>window.gpsCalls),gpsCalls,'Manual route must never request GPS');
+ await deniedPage.locator('#search-open').click();await deniedPage.locator('#origin').fill('Shkup');await deniedPage.getByRole('button',{name:'Gjej karikues'}).click();await deniedPage.getByRole('heading',{name:'Zgjidh pikën e nisjes'}).waitFor();await deniedPage.locator('.place-option').click();await waitSearch(deniedPage);
+ await deniedPage.locator('#search-open').click();await deniedPage.locator('#pick-origin').click();await deniedPage.locator('#map').click({position:{x:170,y:400}});await deniedPage.locator('#origin').waitFor();
+ assert.match(await deniedPage.locator('#origin').inputValue(),/^-?\d+\.\d+,-?\d+\.\d+$/);assert.equal(await deniedPage.locator('#tab-route').getAttribute('aria-selected'),'true');assert.equal(await deniedPage.locator('#destination').inputValue(),'42.1,21.5');
+ await deniedPage.locator('#pick-destination').click();await deniedPage.locator('#map').click({position:{x:180,y:410}});await deniedPage.locator('#destination').waitFor();assert.equal(await deniedPage.locator('#tab-route').getAttribute('aria-selected'),'true');
+ await deniedPage.screenshot({path:'browser-results/manual-origin-phone.png'});await denied.close();
+ console.log('PASS: GPS denied recovery, manual route coordinates and city, separate origin/destination map picking, provider logo, official apps, email and connector details');
+
  console.log('PASS: fullscreen phone map, 10 km default, all 230 small numbered markers, categories, operator links, attributed Commons photo, external reviews links, hidden fields/list, three modes, filters, saved stations, sharing fallback and real downloaded chargers near Skopje with public search services blocked');
  console.log('Live occupancy, GPS hardware and actual myAudi delivery are not tested.');
 }catch(error){

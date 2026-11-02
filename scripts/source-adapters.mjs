@@ -1,5 +1,6 @@
 import {distance,point} from '../dist/core.mjs';
 const SOURCE={
+ ocm:{name:'Open Charge Map contributors',url:'https://openchargemap.org/about/terms',license:'CC BY 4.0'},
  myfah:{name:'MYFAH · Ministria greke',url:'https://electrokinisi.yme.gov.gr/public/HelpMyfah/PublicData/',license:'Të dhëna publike MYFAH / AFIR'},
  fines:{name:'Fines Charging · API publike',url:'https://finescharging.com/public-api',license:'API publike Fines; atribuim burimi'},
  zagreb:{name:'Qyteti i Zagrebit · të dhëna të hapura',url:'https://data.gov.hr/ckan/en/dataset/geoportal-elektricne-punionice',license:'Otvorena dozvola (OD)'}
@@ -21,10 +22,10 @@ export function myfahLocations(data,fetchedAt){
   const connections=[];const evses=l.evses??[];
   for(const e of evses)for(const c of e.connectors??[]){
    const watts=Number(c.max_electric_power);const kw=Number.isFinite(watts)&&watts>0?watts/1000:0;
-   connections.push({label:standards[c.standard]||String(c.standard||'Lidhës i paspecifikuar'),current:c.power_type==='DC'?'DC':String(c.power_type||'').startsWith('AC')?'AC':'',power:kw});
+   connections.push({label:standards[c.standard]||String(c.standard||'Lidhës i paspecifikuar'),current:c.power_type==='DC'?'DC':String(c.power_type||'').startsWith('AC')?'AC':'',power:kw,voltage:Number.isFinite(c.max_voltage)?c.max_voltage:null,amps:Number.isFinite(c.max_amperage)?c.max_amperage:null});
   }
   const tags={name:l.name||l.address||'Stacion karikimi',operator:l.operator?.name||'',website:l.operator?.website||'',image:(l.images??[]).find(i=>['LOCATION','CHARGER'].includes(i.category))?.url||'', 'addr:street':l.address||'','addr:city':l.city||'','addr:country':'GR',opening_hours:l.opening_times?.twentyfourseven?'24/7':''};
-  return record('myfah',[l.country_code||'GR',l.party_id||'',l.id].join(':'),{lat:l.coordinates?.latitude,lon:l.coordinates?.longitude},tags,group(connections),fetchedAt,{sourceUpdatedAt:l.last_updated||'',evseIds:evses.map(e=>e.evse_id).filter(Boolean)});
+  return record('myfah',[l.country_code||'GR',l.party_id||'',l.id].join(':'),{lat:l.coordinates?.latitude,lon:l.coordinates?.longitude},tags,group(connections),fetchedAt,{metadata:{accessNotes:(l.directions||[]).filter(d=>d.language==='en').map(d=>d.text).join(' '),parking:l.parking_type||'',facilities:(l.facilities||[]).join(', '),chargingWhenClosed:typeof l.charging_when_closed==='boolean'?l.charging_when_closed:null},sourceUpdatedAt:l.last_updated||'',evseIds:evses.map(e=>e.evse_id).filter(Boolean)});
  }).filter(Boolean);
 }
 function plug(label){const s=String(label).toLowerCase();return /ccs.*(?:2|combo 2)|combo 2/.test(s)?{label:'CCS2',current:'DC'}:/ccs.*1|combo 1/.test(s)?{label:'CCS1',current:'DC'}:/chademo/.test(s)?{label:'CHAdeMO',current:'DC'}:/type.?2|type 2/.test(s)?{label:'Type 2',current:'AC'}:/type.?1/.test(s)?{label:'Type 1',current:'AC'}:{label:String(label||'Lidhës i paspecifikuar'),current:''};}
@@ -46,6 +47,21 @@ export function zagrebLocations(data,fetchedAt){
   return record('zagreb',p.OBJECTID_1??p.OBJECTID??f.id,{lat:f.geometry?.coordinates?.[1],lon:f.geometry?.coordinates?.[0]},{name:p.NAZIV||'Stacion karikimi','addr:street':p.ADRESA||'','addr:city':'Zagreb','addr:country':'HR',description},[],fetchedAt);
  }).filter(Boolean);
 }
+export function ocmLocations(data,fetchedAt){
+ if(!Array.isArray(data.records)||!data.reference)throw Error('OCM export has no records/reference');
+ const lookup=(list,id)=>data.reference[list]?.find(x=>x.ID===id)||{};
+ const provider=lookup('DataProviders',1);
+ if(provider.IsOpenDataLicensed!==true||!provider.License)throw Error('OCM contributor license is not confirmed');
+ const known={33:'CCS2',32:'CCS1',25:'Type 2',103:'Type 2',1:'Type 1',2:'CHAdeMO',30:'Tesla',27:'Tesla'};
+ return data.records.filter(l=>l.DataProviderID===1&&l.SubmissionStatusTypeID===200&&![100,150,200,210].includes(l.StatusTypeID)&&![2,3,6].includes(l.UsageTypeID)).map(l=>{
+  const a=l.AddressInfo||{},operator=lookup('Operators',l.OperatorID),usage=lookup('UsageTypes',l.UsageTypeID),country=lookup('Countries',a.CountryID);
+  if(a.Latitude<34||a.Latitude>48.5||a.Longitude<12||a.Longitude>30)return null;
+  const connections=(l.Connections||[]).map(c=>({label:known[c.ConnectionTypeID]||lookup('ConnectionTypes',c.ConnectionTypeID).Title||'Lidhës i paspecifikuar',current:c.CurrentTypeID===30?'DC':[10,20].includes(c.CurrentTypeID)?'AC':'',power:Number.isFinite(c.PowerKW)&&c.PowerKW>0?c.PowerKW:0,count:Number.isInteger(c.Quantity)&&c.Quantity>0?c.Quantity:null,voltage:Number.isFinite(c.Voltage)?c.Voltage:null,amps:Number.isFinite(c.Amps)?c.Amps:null}));
+  const tags={name:a.Title||'Stacion karikimi',operator:operator.Title?.startsWith('(')?'':operator.Title||'','operator:website':operator.WebsiteURL||'',website:a.RelatedURL||'','addr:street':[a.AddressLine1,a.AddressLine2].filter(Boolean).join(', '),'addr:city':a.Town||'','addr:postcode':a.Postcode||'','addr:country':country.ISOCode||'',description:l.GeneralComments||'',phone:a.ContactTelephone1||a.ContactTelephone2||operator.PhonePrimaryContact||'','contact:email':a.ContactEmail||operator.ContactEmail||'',capacity:l.NumberOfPoints?String(l.NumberOfPoints):'',charge:l.UsageCost||'','check_date':l.DateLastVerified||'',access:l.UsageTypeID===4?'members':'yes', 'authentication:membership_card':usage.IsMembershipRequired===true?'yes':''};
+  return record('ocm',l.ID,{lat:a.Latitude,lon:a.Longitude},tags,connections,fetchedAt,{sourceUpdatedAt:l.DateLastStatusUpdate||'',metadata:{accessNotes:a.AccessComments||'',usage:usage.Title||'',registryStatus:lookup('StatusTypes',l.StatusTypeID).Title||'',registryStatusAt:l.DateLastStatusUpdate||'',reference:l.OperatorsReference||'',numberOfPoints:l.NumberOfPoints||null},provenance:[{name:'Open Charge Map contributors',url:`https://openchargemap.org/site/poi/details/${l.ID}`,license:provider.License,recordId:String(l.ID),fetchedAt}]});
+ }).filter(Boolean);
+}
+
 const norm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/\p{M}/gu,'').replace(/[^\p{L}\p{N}]/gu,'');
 export function mergeLocations(osm,additional){
  const records=[...osm];let merged=0;
@@ -69,8 +85,10 @@ export function mergeLocations(osm,additional){
   merged++;
   // Keep the map identity and photos; prefer richer connector data from the official feed.
   const old=existing.tags??{};
-  existing.tags={...old,...Object.fromEntries(Object.entries(incoming.tags).filter(([,v])=>v!==''&&v!=null))};
-  if(incoming.connections.length)existing.connections=incoming.connections;
+  const incomingTags=Object.fromEntries(Object.entries(incoming.tags).filter(([,v])=>v!==''&&v!=null));
+  existing.tags=incoming.type==='ocm'?{...incomingTags,...Object.fromEntries(Object.entries(old).filter(([,v])=>v!==''&&v!=null))}:{...old,...incomingTags};
+  if(incoming.connections.length&&(!existing.connections?.length||incoming.type!=='ocm'))existing.connections=incoming.connections;
+  if(incoming.metadata)existing.metadata={...(existing.metadata||{}),...incoming.metadata};
   existing.provenance=[...(existing.provenance??(existing.type==='node'||existing.type==='way'||existing.type==='relation'?[{name:'OpenStreetMap contributors',url:`https://www.openstreetmap.org/${existing.type}/${existing.id}`,license:'ODbL-1.0'}]:[])),...incoming.provenance];
   if(incoming.finesId)existing.finesId=incoming.finesId;
   if(incoming.sourceUpdatedAt)existing.sourceUpdatedAt=incoming.sourceUpdatedAt;

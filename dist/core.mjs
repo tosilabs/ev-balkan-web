@@ -1,4 +1,4 @@
-import {locationInfo,socketCurrent,bestClass,webUrl} from './details.mjs?v=1.5';
+import {locationInfo,socketCurrent,bestClass,webUrl} from './details.mjs?v=1.6';
 export function point(lat,lon){
   if(lat==null||lon==null||lat===''||lon==='')throw Error('Koordinata të pavlefshme.');
   lat=Number(lat);lon=Number(lon);
@@ -38,8 +38,8 @@ function power(value){
   if(!value)return 0;
   return Math.max(0,...String(value).split(';').map(part=>{const n=Number.parseFloat(part.replace(',','.'));return Number.isFinite(n)?n*(/\bW\b/i.test(part)&&!/kW/i.test(part)?1/1000:1):0;}));
 }
-export function validStationId(id){return /^(node|way|relation)\/\d+$/.test(id)||/^(myfah|fines|zagreb)\/[A-Za-z0-9_.:%*+!-]{1,220}$/.test(id);}
-const officialSources={myfah:{name:'MYFAH · Ministria greke',url:'https://electrokinisi.yme.gov.gr/public/HelpMyfah/PublicData/'},fines:{name:'Fines Charging · API publike',url:'https://finescharging.com/public-api'},zagreb:{name:'Qyteti i Zagrebit · data.gov.hr',url:'https://data.gov.hr/ckan/en/dataset/geoportal-elektricne-punionice'}};
+export function validStationId(id){return /^(node|way|relation)\/\d+$/.test(id)||/^(myfah|fines|zagreb|ocm)\/[A-Za-z0-9_.:%*+!-]{1,220}$/.test(id);}
+const officialSources={ocm:{name:'Open Charge Map',url:'https://openchargemap.org/about/terms'},myfah:{name:'MYFAH · Ministria greke',url:'https://electrokinisi.yme.gov.gr/public/HelpMyfah/PublicData/'},fines:{name:'Fines Charging · API publike',url:'https://finescharging.com/public-api'},zagreb:{name:'Qyteti i Zagrebit · data.gov.hr',url:'https://data.gov.hr/ckan/en/dataset/geoportal-elektricne-punionice'}};
 export function parseStations(data,options,center,line=null){
   const out=[],seen=new Set();
   for(const element of data.elements??[]){
@@ -52,7 +52,7 @@ export function parseStations(data,options,center,line=null){
     const labels={type2_combo:'CCS2',type2:'Type 2',chademo:'CHAdeMO',type1:'Type 1',type1_combo:'CCS1',tesla_supercharger:'Tesla',tesla_destination:'Tesla',schuko:'Schuko'};
     let connections=Object.entries(tags).filter(([key,count])=>/^socket:[^:]+$/.test(key)&&count&&count!=='0'&&count!=='no')
       .map(([key])=>({label:labels[key.slice(7)]||key.slice(7).replaceAll('_',' '),power:power(tags[key+':output']),current:socketCurrent(key.slice(7)),count:/^\d+$/.test(tags[key])?Number(tags[key]):null}));
-    if(Array.isArray(element.connections))connections=element.connections.filter(c=>typeof c.label==='string'&&c.label.length<=80).map(c=>({label:c.label,current:['AC','DC'].includes(c.current)?c.current:'',power:Number.isFinite(c.power)&&c.power>0&&c.power<=2000?c.power:0,count:Number.isInteger(c.count)&&c.count>0?c.count:null}));
+    if(Array.isArray(element.connections))connections=element.connections.filter(c=>typeof c.label==='string'&&c.label.length<=80).map(c=>({label:c.label,current:['AC','DC'].includes(c.current)?c.current:'',power:Number.isFinite(c.power)&&c.power>0&&c.power<=2000?c.power:0,count:Number.isInteger(c.count)&&c.count>0?c.count:null,voltage:Number.isFinite(c.voltage)&&c.voltage>0?c.voltage:null,amps:Number.isFinite(c.amps)&&c.amps>0?c.amps:null}));
     const unknown=connections.length===0;
     if(unknown&&(!options.includeUnknown||options.minPower>0))continue;
     const matching=connections.filter(c=>(options.connector==='all'||(options.connector==='both'&&['CCS2','Type 2'].includes(c.label))||c.label===options.connector)&&c.power>=options.minPower);
@@ -62,11 +62,11 @@ export function parseStations(data,options,center,line=null){
     const km=line?corridorDistance(p,line):distance(center,p);
     if(km>options.radius)continue;
     const address=[tags['addr:street'],tags['addr:housenumber'],tags['addr:city']].filter(Boolean).join(' ');
-    const origin=officialSources[element.type]||{name:'OpenStreetMap',url:`https://www.openstreetmap.org/${id}`};
+    const origin=element.type==='ocm'?{name:'Open Charge Map',url:`https://openchargemap.org/site/poi/details/${element.id}`} : officialSources[element.type]||{name:'OpenStreetMap',url:`https://www.openstreetmap.org/${id}`};
     const provenance=(element.provenance||[]).filter(p=>p&&typeof p.name==='string'&&webUrl(p.url)).slice(0,8).map(p=>({name:p.name,url:webUrl(p.url),license:String(p.license||''),fetchedAt:String(p.fetchedAt||'')}));
     if(!provenance.length)provenance.push({name:origin.name,url:origin.url,license:element.type==='node'||element.type==='way'||element.type==='relation'?'ODbL-1.0':'Sipas kushteve të burimit'});
     out.push({id,name:tags.name||tags.brand||tags.operator||'Stacion karikimi',point:p,address,operator:tags.operator||tags.brand||'',connectors:unknown?'Lidhësi i paspecifikuar':matching.map(c=>c.label).join(' / '),power:Math.max(0,...matching.map(c=>c.power)),unknown,compatible:matching.some(c=>['CCS2','Type 2'].includes(c.label)),distance:km,
-      connections:matching,speed,info:locationInfo(tags),price:tags.charge||(tags.fee==='no'?'Pa pagesë, sipas regjistrit':''),hours:tags.opening_hours||'',access:tags.access||'',source:origin.url,sourceName:origin.name,provenance,sourceUpdatedAt:String(element.sourceUpdatedAt||''),finesId:/^\d+$/.test(String(element.finesId||''))?String(element.finesId):''});
+      connections:matching,allConnections:connections,speed,info:{...locationInfo(tags),metadata:element.metadata||{}},price:tags.charge||(tags.fee==='no'?'Pa pagesë, sipas regjistrit':''),hours:tags.opening_hours||'',access:tags.access||'',source:origin.url,sourceName:origin.name,provenance,sourceUpdatedAt:String(element.sourceUpdatedAt||''),finesId:/^\d+$/.test(String(element.finesId||''))?String(element.finesId):''});
   }
   return out.sort((a,b)=>a.distance-b.distance);
 }

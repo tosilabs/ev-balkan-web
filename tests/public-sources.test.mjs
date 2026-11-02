@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {myfahLocations,finesLocations,zagrebLocations,mergeLocations} from '../scripts/source-adapters.mjs';
+import {myfahLocations,finesLocations,zagrebLocations,ocmLocations,mergeLocations} from '../scripts/source-adapters.mjs';
 import {parseStations,settings,point,validStationId} from '../dist/core.mjs';
 import {availabilitySummary} from '../dist/sources-ui.mjs';
 const stamp='2026-11-02T14:00:00Z';
@@ -38,4 +38,13 @@ test('Old or malformed live data cannot be presented as current availability',()
  const data={generated_at:stamp,connectors:[{available:true},{available:false},{status:'Available'}]};
  assert.equal(availabilitySummary(data,Date.parse(stamp)+60000).fresh,true);assert.equal(availabilitySummary(data,Date.parse(stamp)+60000).available,1);
  assert.equal(availabilitySummary(data,Date.parse(stamp)+660000).fresh,false);assert.equal(availabilitySummary({...data,generated_at:'bad'}).fresh,false);
+});
+
+test('OCM imports only approved contributor records with explicit open license and preserves useful metadata',()=>{
+ const reference={DataProviders:[{ID:1,IsOpenDataLicensed:true,License:'CC BY 4.0'}],Operators:[{ID:1,Title:'EVN Macedonia',WebsiteURL:'https://emobility.evn.mk/'}],Countries:[{ID:134,ISOCode:'MK'}],UsageTypes:[{ID:4,Title:'Public - Membership Required',IsMembershipRequired:true}],StatusTypes:[{ID:50,Title:'Operational'}]};
+ const row={ID:123,DataProviderID:1,OperatorID:1,SubmissionStatusTypeID:200,UsageTypeID:4,StatusTypeID:50,DateLastStatusUpdate:'2020-01-01',AddressInfo:{Title:'Test OCM',Latitude:42,Longitude:21,CountryID:134,AccessComments:'Entrance on east side'},Connections:[{ConnectionTypeID:33,PowerKW:150,CurrentTypeID:30,Quantity:2,Voltage:400,Amps:300}]};
+ const result=ocmLocations({records:[row,{...row,ID:124,DataProviderID:2},{...row,ID:125,StatusTypeID:200},{...row,ID:126,UsageTypeID:6}],reference},stamp);
+ assert.equal(result.length,1);assert.equal(result[0].connections[0].label,'CCS2');assert.equal(result[0].connections[0].voltage,400);assert.equal(result[0].metadata.accessNotes,'Entrance on east side');
+ const parsed=parseStations({elements:result},settings({connector:'all'}),point(42,21))[0];assert.equal(parsed.id,'ocm/123');assert.match(parsed.source,/details\/123/);assert.equal(parsed.finesId,'');assert.equal(parsed.info.metadata.registryStatus,'Operational');assert.equal(parsed.allConnections[0].amps,300);
+ assert.throws(()=>ocmLocations({records:[row],reference:{DataProviders:[{ID:1,IsOpenDataLicensed:false}]}},stamp));
 });

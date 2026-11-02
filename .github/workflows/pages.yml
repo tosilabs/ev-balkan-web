@@ -30,6 +30,32 @@ jobs:
         run: node scripts/update-charging.mjs
       - name: Download official public feeds
         run: python3 scripts/download-public-sources.py
+      - name: Read public Open Charge Map country export
+        continue-on-error: true
+        uses: actions/checkout@v4
+        with:
+          repository: openchargemap/ocm-export
+          ref: main
+          path: .source-cache/ocm-export
+          persist-credentials: false
+          sparse-checkout: |
+            data/referencedata.json
+            data/AL
+            data/BA
+            data/BG
+            data/GR
+            data/HR
+            data/ME
+            data/MK
+            data/RO
+            data/RS
+            data/SI
+            data/XK
+          sparse-checkout-cone-mode: false
+      - name: Prepare openly licensed OCM source
+        run: node scripts/import-ocm.mjs
+      - name: Refresh official operator links and visual identities
+        run: python3 scripts/update-providers.py
       - name: Merge official registries and write source catalogue
         run: node scripts/merge-public-sources.mjs
       - name: Save downloaded registry
