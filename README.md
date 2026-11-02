@@ -4,7 +4,7 @@
 
 Aplikacion në shqip për udhëtime elektrike: karikues pranë teje, përgjatë itinerarit ose pranë një vendi, kohë udhëtimi, profil lartësie, mot dhe radar reshjesh. Punon në shfletuesin e telefonit dhe mund të instalohet si PWA. Vendndodhja mund të caktohet manualisht kur GPS mungon.
 
-**Versioni:** 2.0.0 · identiteti i ri Udhëmbarë. Projekti është përgatitur për repository më vete; shih [MIGRIMI.md](MIGRIMI.md) për gjendjen dhe hapat e krijimit/publikimit. Adresa e synuar nuk konsiderohet e publikuar derisa GitHub Pages të ketë përfunduar.
+**Versioni:** 2.1.0 · identiteti i ri Udhëmbarë. Projekti është përgatitur për repository më vete; shih [MIGRIMI.md](MIGRIMI.md) për gjendjen dhe hapat e krijimit/publikimit. Adresa e synuar nuk konsiderohet e publikuar derisa GitHub Pages të ketë përfunduar.
 
 Lidhjet me myAudi, Waze dhe OsmAnd, burimet e karikuesve, statusi kur ofrohet, fotografitë/lidhjet zyrtare, historiku, moti dhe profili i terrenit ruhen si funksione. Çmimet dhe statusi shfaqen vetëm kur burimi i ofron; sinjalet e motit janë orientuese, jo alarme zyrtare.
 
@@ -154,3 +154,12 @@ Sinjalet janë të app-it, jo alarme zyrtare: rafale ≥60 km/h (të theksuara �
 RainViewer Weather Maps aktivizohet shprehimisht nga përdoruesi. Merren deri 13 pamje të kaluara, me zgjedhje kohe, animacion një kornizë/sekondë, transparencë dhe maskë mbulimi. Nuk importohen nowcast/infrared ose alarme private. Përdoret maxNativeZoom=7, pa pretenduar hollësi që burimi nuk i jep. Metadata ripërdoret deri 5 minuta; pamjet tepër të vjetra refuzohen. Zona pa radar nuk supozohet e thatë; maska dhe shënimet e sqarojnë. Animacioni ndalet kur paneli mbyllet ose faqja kalon në sfond. Shfaqet atribuimi Open-Meteo dhe RainViewer.
 
 Burime: https://open-meteo.com/en/docs (CC BY 4.0, API falas vetëm jokomercial) dhe https://www.rainviewer.com/api/weather-maps-api.html (API personal/edukativ, pa garanci mbulimi/SLA).
+
+### Rrufeja, e kaltra elektrike dhe renditja përgjatë itinerarit (v2.1)
+Rikthehet forma fillestare e logos me rrufe, me të kaltër elektrike dhe të bardhë. Theksi kryesor, butonat dhe tema PWA përdorin të kaltrën. Ikona ka query versioni për të shmangur rikthimin e pamjes së vjetër nga cache.
+
+Filtri ka edhe 300 m, 500 m, 1 km dhe 2 km; te itinerari ka shkurtoren “Vetëm përgjatë rrugës · 300 m”. Rrezja matet në të dyja anët përgjatë gjithë gjeometrisë së rrugës. Renditja fillestare ndjek progresin nga nisja drejt fundit, duke projektuar çdo stacion te pika e afërt e itinerarit dhe llogaritur gjatësinë e kumuluar të rrugës. Nuk renditet më sipas largësisë anësore. Ofrohen edhe renditja sipas largësisë në vijë ajrore nga nisja, si dhe sipas largësisë nga vija. Kur nisja merret nga GPS, rendi fillon nga ai vend; për nisje manuale ose itinerar të ruajtur përdoret nisja përkatëse. Nuk gjurmohet automatikisht përparimi gjatë drejtimit.
+
+Lista dallon kilometrat përgjatë itinerarit nga largësia anësore; ato nuk paraqiten si devijim real ose rrugë automobilistike deri te karikuesi. ETA dhe largësia reale e OSRM mbeten te paneli i stacionit. Filtrat/renditja ruhen me kërkimin në historik dhe numrat e shenjave përputhen me listën.
+
+Kartat e listës kanë pamje reale të hartës së vendndodhjes, me pllaka standarde OpenStreetMap në zoom 14 dhe pozicionim Web Mercator. Ngarkohen vetëm kartat që duken në panel, pa shkarkim paraprak ose ruajtje offline të pllakave. Pamja ka pikën e stacionit, atribuimin dhe veprim për të hapur detajet. Mungesat e pllakave shënohen; nuk krijohet një hartë e sajuar. Pamjet përshtaten me gjerësinë e kartës, pa krijuar një instancë të rëndë harte për çdo stacion.

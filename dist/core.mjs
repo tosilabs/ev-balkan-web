@@ -1,4 +1,4 @@
-import {locationInfo,socketCurrent,bestClass,webUrl} from './details.mjs?v=2.0';
+import {locationInfo,socketCurrent,bestClass,webUrl} from './details.mjs?v=2.1';
 export function point(lat,lon){
   if(lat==null||lon==null||lat===''||lon==='')throw Error('Koordinata të pavlefshme.');
   lat=Number(lat);lon=Number(lon);
@@ -11,17 +11,19 @@ export function coordinates(text){
 }
 const rad=x=>x*Math.PI/180, R=6371.0088;
 export function distance(a,b){const h=Math.sin(rad(b.lat-a.lat)/2)**2+Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(rad(b.lon-a.lon)/2)**2;return R*2*Math.asin(Math.sqrt(Math.min(1,h)));}
-export function corridorDistance(p,line){
-  if(!line.length)throw Error('Itinerari është bosh.');
-  let best=distance(p,line[0]);
-  const scale=Math.cos(rad(p.lat));
-  for(let i=1;i<line.length;i++){
-    const a=line[i-1],b=line[i],ax=rad(a.lon-p.lon)*R*scale,ay=rad(a.lat-p.lat)*R,bx=rad(b.lon-p.lon)*R*scale,by=rad(b.lat-p.lat)*R;
-    const dx=bx-ax,dy=by-ay,d=dx*dx+dy*dy,t=d?Math.max(0,Math.min(1,-(ax*dx+ay*dy)/d)):0;
-    best=Math.min(best,Math.hypot(ax+t*dx,ay+t*dy));
-  }
-  return best;
+export function routeProjection(p,line,measures=null){
+ if(!line.length)throw Error('Itinerari është bosh.');
+ const cumulative=measures||[0];if(!measures)for(let i=1;i<line.length;i++)cumulative.push(cumulative[i-1]+distance(line[i-1],line[i]));
+ let best=distance(p,line[0]),alongKm=0,segment=0,bestT=0;const scale=Math.cos(rad(p.lat));
+ for(let i=1;i<line.length;i++){
+  const a=line[i-1],b=line[i],ax=rad(a.lon-p.lon)*R*scale,ay=rad(a.lat-p.lat)*R,bx=rad(b.lon-p.lon)*R*scale,by=rad(b.lat-p.lat)*R;
+  const dx=bx-ax,dy=by-ay,d=dx*dx+dy*dy,t=d?Math.max(0,Math.min(1,-(ax*dx+ay*dy)/d)):0,offset=Math.hypot(ax+t*dx,ay+t*dy);
+  if(offset<best-1e-9){best=offset;alongKm=cumulative[i-1]+(cumulative[i]-cumulative[i-1])*t;segment=i-1;bestT=t;}
+ }
+ const a=line[segment],b=line[segment+1],nearest=b?{lat:a.lat+(b.lat-a.lat)*bestT,lon:a.lon+(b.lon-a.lon)*bestT}:a;
+ return {offsetKm:best,alongKm,segment,nearest};
 }
+export function corridorDistance(p,line){return routeProjection(p,line).offsetKm;}
 export function bounds(line,padding){
   if(!line.length)throw Error('Mungojnë pikat e kërkimit.');
   let south=90,north=-90,west=180,east=-180;
@@ -30,9 +32,9 @@ export function bounds(line,padding){
   return [Math.max(-90,south-latPad),Math.max(-180,west-lonPad),Math.min(90,north+latPad),Math.min(180,east+lonPad)];
 }
 export function settings(raw={}){
-  const radius=Number(raw.radius??10),minPower=Number(raw.minPower??0),connector=raw.connector??'both',speed=raw.speed??'all';
-  if(!Number.isFinite(radius)||radius<1||radius>100||!Number.isFinite(minPower)||minPower<0||minPower>1000||!['all','both','CCS2','Type 2'].includes(connector)||!['all','slow','medium','fast','ultra','unknown'].includes(speed))throw Error('Rrezja duhet të jetë 1–100 km dhe fuqia 0–1000 kW.');
-  return {radius,minPower,connector,speed,activeOnly:Boolean(raw.activeOnly),includeUnknown:Boolean(raw.includeUnknown)};
+  const radius=Number(raw.radius??10),minPower=Number(raw.minPower??0),connector=raw.connector??'both',speed=raw.speed??'all',routeSort=raw.routeSort??'progress';
+  if(!Number.isFinite(radius)||radius<.3||radius>100||!Number.isFinite(minPower)||minPower<0||minPower>1000||!['all','both','CCS2','Type 2'].includes(connector)||!['all','slow','medium','fast','ultra','unknown'].includes(speed)||!['progress','near','offset'].includes(routeSort))throw Error('Rrezja duhet të jetë 0.3–100 km dhe fuqia 0–1000 kW.');
+  return {radius,minPower,connector,speed,routeSort,activeOnly:Boolean(raw.activeOnly),includeUnknown:Boolean(raw.includeUnknown)};
 }
 function power(value){
   if(!value)return 0;
@@ -40,8 +42,10 @@ function power(value){
 }
 export function validStationId(id){return /^(node|way|relation)\/\d+$/.test(id)||/^(myfah|fines|zagreb|ocm)\/[A-Za-z0-9_.:%*+!-]{1,220}$/.test(id);}
 const officialSources={ocm:{name:'Open Charge Map',url:'https://openchargemap.org/about/terms'},myfah:{name:'MYFAH · Ministria greke',url:'https://electrokinisi.yme.gov.gr/public/HelpMyfah/PublicData/'},fines:{name:'Fines Charging · API publike',url:'https://finescharging.com/public-api'},zagreb:{name:'Qyteti i Zagrebit · data.gov.hr',url:'https://data.gov.hr/ckan/en/dataset/geoportal-elektricne-punionice'}};
-export function parseStations(data,options,center,line=null){
-  const out=[],seen=new Set();
+export function parseStations(data,options,center,line=null,origin=null){
+  const out=[],seen=new Set(),cumulative=[0];
+  if(line)for(let i=1;i<line.length;i++)cumulative.push(cumulative[i-1]+distance(line[i-1],line[i]));
+  const anchor=origin||line?.[0]||center;
   for(const element of data.elements??[]){
     const tags=element.tags??{},raw=element.center??element;
     if(raw.lat==null||raw.lon==null)continue;
@@ -59,16 +63,16 @@ export function parseStations(data,options,center,line=null){
     if(!unknown&&!matching.length)continue;
     const speed=bestClass(matching);
     if(options.speed!=='all'&&options.speed!==speed.key&&!(options.speed==='fast'&&speed.key==='ultra'))continue;
-    const km=line?corridorDistance(p,line):distance(center,p);
+    const projection=line?routeProjection(p,line,cumulative):null,km=projection?projection.offsetKm:distance(center,p);
     if(km>options.radius)continue;
     const address=[tags['addr:street'],tags['addr:housenumber'],tags['addr:city']].filter(Boolean).join(' ');
     const origin=element.type==='ocm'?{name:'Open Charge Map',url:`https://openchargemap.org/site/poi/details/${element.id}`} : officialSources[element.type]||{name:'OpenStreetMap',url:`https://www.openstreetmap.org/${id}`};
     const provenance=(element.provenance||[]).filter(p=>p&&typeof p.name==='string'&&webUrl(p.url)).slice(0,8).map(p=>({name:p.name,url:webUrl(p.url),license:String(p.license||''),fetchedAt:String(p.fetchedAt||'')}));
     if(!provenance.length)provenance.push({name:origin.name,url:origin.url,license:element.type==='node'||element.type==='way'||element.type==='relation'?'ODbL-1.0':'Sipas kushteve të burimit'});
-    out.push({id,name:tags.name||tags.brand||tags.operator||'Stacion karikimi',point:p,address,operator:tags.operator||tags.brand||'',connectors:unknown?'Lidhësi i paspecifikuar':matching.map(c=>c.label).join(' / '),power:Math.max(0,...matching.map(c=>c.power)),unknown,compatible:matching.some(c=>['CCS2','Type 2'].includes(c.label)),distance:km,
+    out.push({id,name:tags.name||tags.brand||tags.operator||'Stacion karikimi',point:p,address,operator:tags.operator||tags.brand||'',connectors:unknown?'Lidhësi i paspecifikuar':matching.map(c=>c.label).join(' / '),power:Math.max(0,...matching.map(c=>c.power)),unknown,compatible:matching.some(c=>['CCS2','Type 2'].includes(c.label)),distance:km,routePosition:projection?.alongKm??null,routeOffset:projection?.offsetKm??null,fromOrigin:line?distance(anchor,p):null,
       connections:matching,allConnections:connections,speed,info:{...locationInfo(tags),metadata:element.metadata||{}},price:tags.charge||(tags.fee==='no'?'Pa pagesë, sipas regjistrit':''),hours:tags.opening_hours||'',access:tags.access||'',source:origin.url,sourceName:origin.name,provenance,sourceUpdatedAt:String(element.sourceUpdatedAt||''),finesId:/^\d+$/.test(String(element.finesId||''))?String(element.finesId):''});
   }
-  return out.sort((a,b)=>a.distance-b.distance);
+  return out.sort((a,b)=>{if(!line)return a.distance-b.distance;const field=options.routeSort==='near'?'fromOrigin':options.routeSort==='offset'?'routeOffset':'routePosition';return a[field]-b[field]||a.routeOffset-b.routeOffset||a.id.localeCompare(b.id);});
 }
 export function destinationUrl(station){const p=point(station.point.lat,station.point.lon);return `https://www.google.com/maps/search/?api=1&query=${p.lat}%2C${p.lon}`;}
 export function shareData(station){return {title:station.name,text:[station.name,station.address].filter(Boolean).join(' — '),url:destinationUrl(station)};}
