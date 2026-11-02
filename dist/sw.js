@@ -1,7 +1,7 @@
-const CACHE='ev-balkan-shell-v11';
-const SHELL=['./','./index.html','./styles.css?v=1.9','./app.mjs?v=1.9','./core.mjs?v=1.9','./services.mjs?v=1.9','./cities.mjs?v=1.9','./details.mjs?v=1.9','./photos.mjs?v=1.9','./sources-ui.mjs?v=1.9','./operating.mjs?v=1.9','./terrain.mjs?v=1.9','./terrain-ui.mjs?v=1.9','./history.mjs?v=1.9','./travel.mjs?v=1.9','./basemap.mjs?v=1.9','./weather.mjs?v=1.9','./weather-ui.mjs?v=1.9','./providers.json','./icon.svg','./manifest.webmanifest'];
+const CACHE='udhembare-shell-v1';
+const SHELL=['./','./index.html','./styles.css?v=2.0','./app.mjs?v=2.0','./core.mjs?v=2.0','./services.mjs?v=2.0','./cities.mjs?v=2.0','./details.mjs?v=2.0','./photos.mjs?v=2.0','./sources-ui.mjs?v=2.0','./operating.mjs?v=2.0','./terrain.mjs?v=2.0','./terrain-ui.mjs?v=2.0','./history.mjs?v=2.0','./travel.mjs?v=2.0','./basemap.mjs?v=2.0','./weather.mjs?v=2.0','./weather-ui.mjs?v=2.0','./storage.mjs?v=2.0','./providers.json','./icon.svg','./manifest.webmanifest'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting()));});
-self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('ev-balkan-shell-')&&key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});
+self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('udhembare-shell-')&&key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});
 // Cache the shell and the public regional registry, never personal searches or map tiles.
 self.addEventListener('fetch',event=>{
   const url=new URL(event.request.url);

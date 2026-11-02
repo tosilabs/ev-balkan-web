@@ -1,5 +1,5 @@
-import {distance,point} from './core.mjs?v=1.9';
-import {requestJson} from './services.mjs?v=1.9';
+import {distance,point} from './core.mjs?v=2.0';
+import {requestJson} from './services.mjs?v=2.0';
 export const TERRAIN={high:{color:'#c34839',label:'Ngjitje · konsum më i lartë'},up:{color:'#d38b24',label:'Ngjitje e lehtë · konsum më i lartë'},level:{color:'#298264',label:'Pothuajse rrafsh · ndikim i vogël'},down:{color:'#347db0',label:'Zbritje · konsum më i ulët / rigjenerim i mundshëm'},unknown:{color:'#7f8790',label:'Pa të dhëna lartësie'}};
 export function lineDistances(line){
  if(!Array.isArray(line)||line.length<2)throw Error('Itinerari nuk ka pika të mjaftueshme.');

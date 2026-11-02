@@ -1,8 +1,12 @@
-# EV Balkan Web — versioni 1.4
+# Udhëmbarë
 
-**Gjendja:** versioni burimor është përgatitur dhe kontrollet lokale kaluan. Kontrollo ekzekutimin më të fundit te Actions për gjendjen e publikimit. Nëse Pages nuk është aktivizuar ende, ndiq hapat te seksioni GitHub Pages.
+**Çdo rrugë, më e menduar.**
 
-Web-faqe në shqip për kërkim karikuesish në Ballkan, e përshtatur për telefon dhe Audi e-tron evropian 2023. Nuk kërkon APK, llogari ose çelës API. Burimi i karikuesve është OpenStreetMap, jo lista e plotë e operatorëve.
+Aplikacion në shqip për udhëtime elektrike: karikues pranë teje, përgjatë itinerarit ose pranë një vendi, kohë udhëtimi, profil lartësie, mot dhe radar reshjesh. Punon në shfletuesin e telefonit dhe mund të instalohet si PWA. Vendndodhja mund të caktohet manualisht kur GPS mungon.
+
+**Versioni:** 2.0.0 · identiteti i ri Udhëmbarë. Projekti është përgatitur për repository më vete; shih [MIGRIMI.md](MIGRIMI.md) për gjendjen dhe hapat e krijimit/publikimit. Adresa e synuar nuk konsiderohet e publikuar derisa GitHub Pages të ketë përfunduar.
+
+Lidhjet me myAudi, Waze dhe OsmAnd, burimet e karikuesve, statusi kur ofrohet, fotografitë/lidhjet zyrtare, historiku, moti dhe profili i terrenit ruhen si funksione. Çmimet dhe statusi shfaqen vetëm kur burimi i ofron; sinjalet e motit janë orientuese, jo alarme zyrtare.
 
 ## Burime shtesë publike (v1.4)
 
@@ -39,7 +43,7 @@ Burimi: https://alternative-fuels-observatory.ec.europa.eu/general-information/r
 
 Seksioni “Foto, operatori dhe informacione” përfshin lidhësit, orarin, përshkrimin, qasjen, pagesat dhe kontaktet kur janë në regjistër. Lidhjet e operatorit merren nga OSM; një direktori e kufizuar plotëson lidhjet zyrtare për Eldrive, Charge&GO, Tesla, OneCharge dhe EVN Macedonia të identifikuar qartë. EVN dhe Petrol nuk lidhen automatikisht me një kompani të një vendi tjetër kur emri është i paqartë.
 
-Fotot Commons ngarkohen vetëm me veprim të përdoruesit, me autorin, licencën dhe lidhjen origjinale kur metadata lejon shfaqjen. Lidhjet e tjera të fotove dhe Mapillary hapen në burimin e tyre. Nuk kopjohen foto nga Google/PlugShare dhe nuk sajohet një foto për lokacionet ku mungon. Reviews ofrohen si kërkim i jashtëm në Google Maps, pa importuar yje ose komente dhe pa garantuar përputhje automatike të listing-ut. Përdoruesi kontrollon vendin që hapet.
+Fotot Commons ngarkohen vetëm me veprim të përdoruesit, me autorin, licencën dhe lidhjen origjinale kur metadata lejon shfaqjen. Lidhjet e tjera të fotove dhe Mapillary hapen në burimin e tyre. Nuk kopjohen foto nga Google/PlugShare dhe nuk sajohet një foto për lokacionet ku mungon. Vlerësimet ofrohen si kërkim i jashtëm në Google Maps, pa importuar yje ose komente dhe pa garantuar përputhje automatike të listing-ut. Përdoruesi kontrollon vendin që hapet.
 
 Regjistri i eksportuar ka `schemaVersion: 2` dhe ruan fushat shtesë. Një eksport i vjetër nuk ripërdoret si eksport i freskët me metadata të plota; në rast dështimi mund të ruhet versioni i mëparshëm me fushat që disponon.
 
@@ -85,7 +89,7 @@ Hap `http://localhost:8080`. Për vendndodhje dhe ndarje nga telefoni nevojitet 
 Vendose përmbajtjen e kësaj dosjeje në rrënjën e një repository të ri. Përfshi dosjen e fshehur `.github`.
 
 1. Te **Settings → Pages → Build and deployment**, zgjidh **GitHub Actions**.
-2. Te **Actions**, zgjidh **Check and publish EV Balkan → Run workflow**, ose bëj push në main.
+2. Te **Actions**, zgjidh **Kontrollo dhe publiko Udhëmbarë → Run workflow**, ose bëj push në main.
 3. Pas suksesit, lidhja shfaqet te ekzekutimi i deploy-t dhe Settings → Pages.
 
 Workflow kontrollon JavaScript-in dhe testet përpara publikimit të dosjes `dist`. Nuk ka secrets. GitHub Pages e publikon faqen në internet; mundësia për repository privat varet nga plani GitHub. Mos shto kredenciale, pozicione personale ose të dhëna konfidenciale në repository.
@@ -120,7 +124,7 @@ Butoni në hartë dhe filtri “Vetëm të konfirmuar në punë” përfshijnë 
 ### Nisje manuale dhe informacione të zgjeruara (v1.6)
 Te “Në rrugë”, zgjidh GPS ose cakto nisjen me qytet/adresë/koordinata apo në hartë. Destinacioni mund të zgjidhet veçmas në hartë. Nëse GPS refuzohet ose dështon, formulari hapet me nisjen manuale dhe ruan destinacionin. Për kërkim pranë teje kalon te një vend manual. Koordinatat dhe preferencat ruhen vetëm në shfletues.
 
-Kartat paraqesin operatorin, logon ose inicialet nëse logoja mungon, faqen e operatorit/lokacionit, aplikacionet Android/iOS kur janë të lidhura nga operatori, kontaktet, të gjithë lidhësit me fuqi/numër/V/A kur jepen, tarifat, orarin dhe qasjen. Detajet përfshijnë udhëzime hyrjeje, pajisje, pagesa, ID EVSE, referencat, fotot dhe prejardhjen e të dhënave. Nuk prodhojmë APK të operatorëve. Logot janë referenca të jashtme nga faqet zyrtare, me burim; nuk kopjohen si asete të EV Balkan.
+Kartat paraqesin operatorin, logon ose inicialet nëse logoja mungon, faqen e operatorit/lokacionit, aplikacionet Android/iOS kur janë të lidhura nga operatori, kontaktet, të gjithë lidhësit me fuqi/numër/V/A kur jepen, tarifat, orarin dhe qasjen. Detajet përfshijnë udhëzime hyrjeje, pajisje, pagesa, ID EVSE, referencat, fotot dhe prejardhjen e të dhënave. Nuk prodhojmë APK të operatorëve. Logot janë referenca të jashtme nga faqet zyrtare, me burim; nuk kopjohen si asete të Udhëmbarë.
 
 Open Charge Map importohet nga eksporti publik zyrtar `openchargemap/ocm-export`, me checkout të pjesshëm për AL/BA/BG/GR/HR/ME/MK/RO/RS/SI/XK. Importohen vetëm regjistrimet e miratuara me DataProviderID=1 dhe licencë të hapur të konfirmuar te referencedata.json (aktualisht CC BY 4.0). Burimet e tjera të përziera nuk importohen automatikisht. Pikat private, të planifikuara, të hequra ose jofunksionale në regjistrim përjashtohen nga ky import. Statusi historik OCM nuk trajtohet si status aktual dhe nuk kualifikon për “Në punë”. Importi pasuron vlerat që mungojnë; regjistrat e drejtpërdrejtë të operatorëve kanë përparësi. Komentet personale dhe fotot OCM nuk ripublikohen pa licencë individuale.
 
@@ -141,7 +145,7 @@ Rreshti i udhëtimit përdor distancën dhe kohëzgjatjen e rrugës automobilist
 Burime: https://openfreemap.org/quick_start/ dhe https://project-osrm.org/docs/v5.24.0/api/ .
 
 ### Moti, radari dhe kontrasti (v1.9)
-Pamje me kontrast më të lartë, tekst të errët, panele të çelëta dhe theks të verdhë, duke ruajtur identitetin EV Balkan. Butoni “☀ Moti” hap motin pa mbivendosur listën e stacioneve apo profilin. Parashikimi shfaqet si shenja të veçanta në hartë, pa zëvendësuar ngjyrimin e pjerrësisë.
+Pamje me kontrast më të lartë, tekst të errët, panele të çelëta dhe theks të verdhë, duke ruajtur identitetin Udhëmbarë. Butoni “☀ Moti” hap motin pa mbivendosur listën e stacioneve apo profilin. Parashikimi shfaqet si shenja të veçanta në hartë, pa zëvendësuar ngjyrimin e pjerrësisë.
 
 Open-Meteo Forecast kërkohet me koordinata në grup, në deri 10 pika përgjatë gjithë itinerarit (rreth çdo 70 km, interval më i madh për rrugë të gjata). Për kërkim sipas vendit përdoret një pikë. Merren temperaturë °C, reshje mm/orë, probabilitet %, borë cm/orë, dukshmëri m, erë/rafale km/h dhe kod WMO, me orë UNIX/UTC të shfaqura sipas telefonit. Ora e kalimit përafrohet nga kohëzgjatja totale OSRM proporcionalisht me distancën, pa trafik/ndalesa. Kohëzgjatja ruhet tani në historik; për hyrje të vjetra pa të shfaqet ora e kërkimit. Rihapja e rrugës nuk përdor mot të vjetër nga historiku. Ka cache në memorie deri 10 minuta dhe rifreskim manual; kërkesat e vjetra anulohen. Shërbimi i motit nuk bllokon karikuesit ose itinerarin. Vlerat null nuk bëhen zero; dështimi nuk paraqitet si mot i kthjellët.
 

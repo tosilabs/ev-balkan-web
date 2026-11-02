@@ -1,3 +1,4 @@
+from project_info import USER_AGENT
 """Download only published, anonymous feeds. Never upload or extract private OCPI APIs."""
 import io,json,urllib.request,zipfile,concurrent.futures
 from pathlib import Path
@@ -10,7 +11,7 @@ SOURCES={
 def fetch(item):
  name,url=item
  try:
-  req=urllib.request.Request(url,headers={'User-Agent':'EVBalkan/1.4 (https://github.com/tosilabs/ev-balkan-web)'})
+  req=urllib.request.Request(url,headers={'User-Agent':USER_AGENT})
   with urllib.request.urlopen(req,timeout=45) as response:raw=response.read(60*1024*1024)
   if url.endswith('.zip'):
    with zipfile.ZipFile(io.BytesIO(raw)) as archive:

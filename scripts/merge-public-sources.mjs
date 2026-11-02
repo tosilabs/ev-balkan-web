@@ -1,3 +1,4 @@
+import {publishedDataUrls} from './project.mjs';
 import {readFile,writeFile} from 'node:fs/promises';
 import {myfahLocations,finesLocations,zagrebLocations,ocmLocations,mergeLocations} from './source-adapters.mjs';
 import {requestJson} from '../dist/services.mjs';
@@ -20,7 +21,7 @@ for(const config of configs){
   bundle={id:config.id,fetchedAt,elements};await writeFile(`dist/data/source-${config.id}.json`,JSON.stringify(bundle));
  }catch(e){error=e.message;
   try{bundle=JSON.parse(await readFile(`dist/data/source-${config.id}.json`,'utf8'));}catch{
-   try{bundle=await requestJson(`https://tosilabs.github.io/ev-balkan-web/data/source-${config.id}.json`,{timeout:8000});}catch{}
+   for(const url of publishedDataUrls(`source-${config.id}.json`))try{bundle=await requestJson(url,{timeout:8000});if(bundle)break;}catch{}
   }
   if(bundle?.elements?.length)status='cached';else status='unavailable';
  }

@@ -1,3 +1,4 @@
+import {publishedDataUrls,userAgent} from './project.mjs';
 import {mkdir,readFile,writeFile} from 'node:fs/promises';
 import {requestJson} from '../dist/services.mjs';
 const bounds=[34,12,48.5,30];
@@ -9,7 +10,7 @@ try {
  if(!cached.sourcesMerged&&cached.schemaVersion>=3&&cached.elements?.length>=100&&cached.fetchedAt&&Date.now()-Date.parse(cached.fetchedAt)<6*60*60*1000){snapshot=cached;console.log('Reusing build cache registry:',cached.fetchedAt);}
 }catch{}
 if(!snapshot)try {
- const previous=await requestJson('https://tosilabs.github.io/ev-balkan-web/data/osm-base.json',{timeout:10000}).catch(()=>requestJson('https://tosilabs.github.io/ev-balkan-web/data/charging-balkans.json',{timeout:10000}));
+ let previous;for(const url of publishedDataUrls('osm-base.json'))try{previous=await requestJson(url,{timeout:10000});if(previous)break;}catch{}
  if(!previous.sourcesMerged&&previous.schemaVersion>=3&&previous.elements?.length>=100&&previous.fetchedAt&&Date.now()-Date.parse(previous.fetchedAt)<6*60*60*1000) {
   snapshot=previous;console.log('Reusing recently downloaded registry:',previous.fetchedAt);
  }
@@ -18,7 +19,7 @@ for(const endpoint of ['https://ovp.dresel.systems/api/interpreter','https://ove
  if(snapshot)break;
  try{
   console.log('Downloading charging registry:',endpoint);
-  const data=await requestJson(`${endpoint}?data=${encodeURIComponent(query)}`,{timeout:195000,headers:{'User-Agent':'EVBalkan/1.1 (https://github.com/tosilabs/ev-balkan-web)'}});
+  const data=await requestJson(`${endpoint}?data=${encodeURIComponent(query)}`,{timeout:195000,headers:{'User-Agent':userAgent}});
   if(data.remark||!Array.isArray(data.elements)||data.elements.length<100)throw Error(data.remark||'Incomplete charging registry');
   const elements=data.elements.map(e=>{
     const tags=Object.fromEntries(Object.entries(e.tags??{}).filter(([k])=>['name','brand','operator','amenity','charge','fee','opening_hours','access','operational_status','disused:amenity','abandoned:amenity','network','website','image','wikimedia_commons','mapillary','description','description:en','description:sq','phone','contact:phone','contact:website','operator:website','brand:website','network:website','capacity','check_date','survey:date','email','contact:email','note','wheelchair','covered','lit','supervised','parking:fee','maxstay','manufacturer','model','ref','ref:EU:EVSE','ref:EU:EVSE:pool'].includes(k)||k.startsWith('socket:')||k.startsWith('addr:')||k.startsWith('payment:')||k.startsWith('authentication:')));
@@ -31,7 +32,7 @@ for(const endpoint of ['https://ovp.dresel.systems/api/interpreter','https://ove
 if(!snapshot){
  try{
   console.log('Trying previously published registry without changing its timestamp');
-  const data=await requestJson('https://tosilabs.github.io/ev-balkan-web/data/osm-base.json',{timeout:12000});
+  let data;for(const url of publishedDataUrls('osm-base.json'))try{data=await requestJson(url,{timeout:12000});if(data)break;}catch{}
   if(!Array.isArray(data.elements)||data.elements.length<100||!data.fetchedAt)throw Error('No published registry');snapshot=data;
  }catch{
   try{const data=JSON.parse(await readFile('dist/data/osm-base.json','utf8'));if(!data.fetchedAt||data.elements?.length<100)throw Error('Invalid cached registry');snapshot=data;}catch{}

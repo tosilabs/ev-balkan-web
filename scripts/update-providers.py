@@ -1,3 +1,4 @@
+from project_info import USER_AGENT
 """Read visual identity and store links published on the operator's own pages.
 Only external references are stored: logos remain on the official publisher's host.
 Failures retain the curated profile; a failed image falls back to initials in the UI.
@@ -21,7 +22,7 @@ def update(profile):
  p=dict(profile)
  try:
   target=p.get('appPage') or p['website']
-  req=urllib.request.Request(target,headers={'User-Agent':'EVBalkan/1.6 (public operator directory; https://github.com/tosilabs/ev-balkan-web)'})
+  req=urllib.request.Request(target,headers={'User-Agent':USER_AGENT})
   with urllib.request.urlopen(req,timeout=18) as response:
    # A redirect to an unrelated domain does not establish an official identity.
    if urlparse(response.url).hostname.removeprefix('www.')!=urlparse(target).hostname.removeprefix('www.'):return p

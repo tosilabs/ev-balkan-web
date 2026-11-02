@@ -71,7 +71,7 @@ try{
  await page.locator('.station-more summary').first().click();
  assert.equal(await page.getByRole('link',{name:'Faqja e operatorit',exact:false}).getAttribute('href'),'https://www.eldrive.eu/');
  assert.match(await page.getByRole('link',{name:'Google Play',exact:false}).getAttribute('href'),/com.fortum.eldrive/);
- assert.match(await page.getByRole('link',{name:'Kërko reviews dhe foto në Maps',exact:false}).getAttribute('href'),/google.com\/maps\/search/);
+ assert.match(await page.getByRole('link',{name:'Kërko vlerësime dhe foto në Maps',exact:false}).getAttribute('href'),/google.com\/maps\/search/);
  await page.getByRole('button',{name:'Ngarko foton e regjistruar'}).click();
  await page.locator('.location-photo img').waitFor();
  await page.waitForFunction(()=>document.querySelector('.location-photo img')?.naturalWidth>0);
@@ -198,7 +198,7 @@ try{
  console.log('PASS: full-route elevation, graded map colors, interactive chart, cached history across reloads, and unknown-data fallback');
  console.log('PASS: GPS denied recovery, manual route coordinates and city, separate origin/destination map picking, provider logo, official apps, email and connector details');
 
- console.log('PASS: fullscreen phone map, 10 km default, all 230 small numbered markers, categories, operator links, attributed Commons photo, external reviews links, hidden fields/list, three modes, filters, saved stations, sharing fallback and real downloaded chargers near Skopje with public search services blocked');
+ console.log('PASS: fullscreen phone map, 10 km default, all 230 small numbered markers, categories, operator links, attributed Commons photo, external vlerësime links, hidden fields/list, three modes, filters, saved stations, sharing fallback and real downloaded chargers near Skopje with public search services blocked');
  console.log('Live occupancy, GPS hardware and actual myAudi delivery are not tested.');
 }catch(error){
  if(page){console.error('TERRAIN STATUS:',await page.locator('#terrain-status').innerText().catch(()=>''));console.error('PAGE STATUS:',await page.locator('#status').innerText().catch(()=>''));console.error('BROWSER ERRORS:',errors);await mkdir('browser-results',{recursive:true});await page.screenshot({path:'browser-results/failure.png'}).catch(()=>{});}

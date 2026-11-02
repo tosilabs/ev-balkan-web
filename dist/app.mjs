@@ -1,38 +1,40 @@
-import {point,coordinates,distance,bounds,settings,parseStations,validStationId,destinationUrl,shareData,navigationUrl} from './core.mjs?v=1.9';
-import {localPlaces} from './cities.mjs?v=1.9';
-import {requestJson as json,loadCharging} from './services.mjs?v=1.9';
-import {externalLocationUrl,bestClass,webUrl,setProviderCatalog} from './details.mjs?v=1.9';
-import {photoSection} from './photos.mjs?v=1.9';
-import {finesLiveSection,showSources} from './sources-ui.mjs?v=1.9';
-import {checkOperating,currentOperating,workingOnly} from './operating.mjs?v=1.9';
-import {loadTerrain,coloredPieces,TERRAIN} from './terrain.mjs?v=1.9';
-import {renderProfile} from './terrain-ui.mjs?v=1.9';
-import {cleanHistory,cleanHistoryEntry,addHistory,encodeHistory,historyLabel} from './history.mjs?v=1.9';
-import {stationTravel,formatTravel} from './travel.mjs?v=1.9';
-import {initBasemap} from './basemap.mjs?v=1.9';
+import {point,coordinates,distance,bounds,settings,parseStations,validStationId,destinationUrl,shareData,navigationUrl} from './core.mjs?v=2.0';
+import {localPlaces} from './cities.mjs?v=2.0';
+import {requestJson as json,loadCharging} from './services.mjs?v=2.0';
+import {externalLocationUrl,bestClass,webUrl,setProviderCatalog} from './details.mjs?v=2.0';
+import {photoSection} from './photos.mjs?v=2.0';
+import {finesLiveSection,showSources} from './sources-ui.mjs?v=2.0';
+import {checkOperating,currentOperating,workingOnly} from './operating.mjs?v=2.0';
+import {loadTerrain,coloredPieces,TERRAIN} from './terrain.mjs?v=2.0';
+import {renderProfile} from './terrain-ui.mjs?v=2.0';
+import {cleanHistory,cleanHistoryEntry,addHistory,encodeHistory,historyLabel} from './history.mjs?v=2.0';
+import {stationTravel,formatTravel} from './travel.mjs?v=2.0';
+import {initBasemap} from './basemap.mjs?v=2.0';
 let detailStation=null,stationFromList=false,travelController=null,manualTravelOrigin=null,deviceLocation=null,gpsDenied=false;
-import {routeWeatherPoints,fetchWeather,selectForecast,radarFrames,radarTile} from './weather.mjs?v=1.9';
-import {renderWeatherRows} from './weather-ui.mjs?v=1.9';
+import {routeWeatherPoints,fetchWeather,selectForecast,radarFrames,radarTile} from './weather.mjs?v=2.0';
+import {renderWeatherRows} from './weather-ui.mjs?v=2.0';
 let weatherState=null,weatherController=null,weatherLayer=null,radarData=null,radarFetchedAt=0,radarController=null,radarLayer=null,radarCoverage=null,radarTimer=null;
 let candidates=[],lastSearch=null,routeState=null,terrainController=null,terrainMarker=null,chartControl=null,pendingReplay=null;
+import {migrateLegacyStorage} from './storage.mjs?v=2.0';
+migrateLegacyStorage();
 const $=id=>document.getElementById(id);
 const providerReady=json(new URL('./data/providers.json',import.meta.url).href,{timeout:4000}).catch(()=>json(new URL('./providers.json',import.meta.url).href,{timeout:4000})).then(setProviderCatalog).catch(()=>{});
 const storage={get(key,fallback){try{return JSON.parse(localStorage.getItem(key))??fallback;}catch{return fallback;}},set(key,value){try{localStorage.setItem(key,JSON.stringify(value));}catch{toast('Telefoni nuk lejoi ruajtjen lokale. Kërkimi mbetet i përdorshëm.');}}};
 let mode='near',active=null,stations=[],shown=0,savedView=false,selectedStation=null,map=null,markers=null,routeLayer=null,searchMarker=null,picking=false,radiusLayer=null,viewingRadius=10,originMarker=null;
-let searchHistory=cleanHistory(storage.get('evb-history-v1',[]));
-let favourites=storage.get('evb-favourites',[]);
+let searchHistory=cleanHistory(storage.get('udhembare-history-v1',[]));
+let favourites=storage.get('udhembare-favourites',[]);
 if(!Array.isArray(favourites))favourites=[];
 favourites=favourites.filter(s=>{try{return s&&typeof s.id==='string'&&validStationId(s.id)&&typeof s.name==='string'&&point(s.point.lat,s.point.lon)&&Number.isFinite(s.distance);}catch{return false;}}).slice(0,200);
 let restored;
-try{restored=settings(storage.get('evb-settings-v2',{radius:10,minPower:0,connector:'all',includeUnknown:true}));}catch{restored=settings({radius:10,minPower:0,connector:'all',includeUnknown:true});}
+try{restored=settings(storage.get('udhembare-settings-v2',{radius:10,minPower:0,connector:'all',includeUnknown:true}));}catch{restored=settings({radius:10,minPower:0,connector:'all',includeUnknown:true});}
 $('radius').value=String(restored.radius);if(!$('radius').value)$('radius').value='10';
 $('power').value=String(restored.minPower);if(!$('power').value)$('power').value='0';
 $('connector').value=restored.connector;$('speed').value=restored.speed;$('unknown').checked=restored.includeUnknown;
 $('only-active').checked=restored.activeOnly;syncActive();
-$('origin').value=String(storage.get('evb-origin','')).slice(0,300);
-$('origin-mode').value=storage.get('evb-origin-mode','gps')==='manual'?'manual':'gps';
+$('origin').value=String(storage.get('udhembare-origin','')).slice(0,300);
+$('origin-mode').value=storage.get('udhembare-origin-mode','gps')==='manual'?'manual':'gps';
 syncOrigin();
-$('destination').value=String(storage.get('evb-query','')).slice(0,300);
+$('destination').value=String(storage.get('udhembare-query','')).slice(0,300);
 function text(tag,value,className){const node=document.createElement(tag);node.textContent=value;if(className)node.className=className;return node;}
 function toast(message,error=false){$('status').textContent=message;$('status').title=message;$('results-note').textContent=message;$('status').classList.toggle('error',error);}
 function showResults(open=true){if(open){closeStation();setTerrainOpen(false);setWeatherOpen(false);}$('results-panel').hidden=!open;document.body.classList.toggle('results-open',open);$('list-open').setAttribute('aria-expanded',String(open));}
@@ -271,8 +273,8 @@ $('terrain-close').addEventListener('click',()=>setTerrainOpen(false));
 $('terrain-retry').addEventListener('click',()=>{if(routeState)fetchTerrain(routeState);});
 function persistHistory(){
  let reduced=false;
- while(searchHistory.length){try{localStorage.setItem('evb-history-v1',encodeHistory(searchHistory));if(reduced)toast('Hapësira në telefon është e kufizuar; u mbajtën kërkimet më të fundit.');return;}catch{if(searchHistory.length===1){toast('Historiku nuk u ruajt: shfletuesi nuk lejoi ruajtjen lokale.',true);return;}searchHistory.pop();reduced=true;}}
- try{localStorage.removeItem('evb-history-v1');}catch{}
+ while(searchHistory.length){try{localStorage.setItem('udhembare-history-v1',encodeHistory(searchHistory));if(reduced)toast('Hapësira në telefon është e kufizuar; u mbajtën kërkimet më të fundit.');return;}catch{if(searchHistory.length===1){toast('Historiku nuk u ruajt: shfletuesi nuk lejoi ruajtjen lokale.',true);return;}searchHistory.pop();reduced=true;}}
+ try{localStorage.removeItem('udhembare-history-v1');}catch{}
 }
 function rememberSearch(entry){if(!cleanHistoryEntry(entry)){toast('Ky kërkim nuk mund të ruhej në historik.',true);return null;}searchHistory=addHistory(searchHistory,entry);persistHistory();return searchHistory[0]?.id;}
 function renderHistory(){
@@ -324,7 +326,7 @@ function favourite(station){return favourites.some(s=>s.id===station.id);}
 function toggleSaved(station){
   if(favourite(station))favourites=favourites.filter(s=>s.id!==station.id);
   else{if(favourites.length>=200){toast('Mund të ruash deri në 200 karikues. Hiq ndonjërin për të shtuar të tjerë.');return;}favourites.push(station);}
-  storage.set('evb-favourites',favourites);savedCount();
+  storage.set('udhembare-favourites',favourites);savedCount();
   if(savedView){stations=$('only-active').checked?workingOnly(favourites):[...favourites];shown=Math.min(stations.length,Math.max(shown,12));$('result-count').textContent=String(stations.length);drawResults(null,null);}
   renderCards();
 }
@@ -401,8 +403,8 @@ function locationDetails(station){
  if(station.provenance?.length){body.append(text('h4','Burimet e këtij lokacioni'));for(const p of station.provenance){const row=document.createElement('p');row.append(externalLink(p.name+' ↗',p.url));if(p.license)row.append(document.createTextNode(' · '+p.license));if(p.fetchedAt)row.append(document.createTextNode(' · marrë më '+new Date(p.fetchedAt).toLocaleDateString('sq-AL')));body.append(row);}}
  if(station.sourceUpdatedAt)body.append(text('p','Përditësimi i raportuar nga burimi: '+station.sourceUpdatedAt));
  if(station.finesId)body.append(finesLiveSection(station.finesId));
- body.append(text('h4','Foto të lokacionit'),photoSection(station),text('h4','Reviews dhe pamje rruge'));
- const reviews=document.createElement('div');reviews.className='provider-links';reviews.append(externalLink('Kërko reviews dhe foto në Maps ↗',externalLocationUrl(station,'reviews')),externalLink('Pamje rruge në Maps ↗',externalLocationUrl(station,'streetview')));body.append(reviews,text('p','Reviews nuk importohen në këtë faqe. Kontrollo që lokacioni në Maps është i njëjti.','field-note'));
+ body.append(text('h4','Foto të lokacionit'),photoSection(station),text('h4','Vlerësime dhe pamje rruge'));
+ const vlerësime=document.createElement('div');vlerësime.className='provider-links';vlerësime.append(externalLink('Kërko vlerësime dhe foto në Maps ↗',externalLocationUrl(station,'vlerësime')),externalLink('Pamje rruge në Maps ↗',externalLocationUrl(station,'streetview')));body.append(vlerësime,text('p','Vlerësime nuk importohen në këtë faqe. Kontrollo që lokacioni në Maps është i njëjti.','field-note'));
  details.append(body);return details;
 }
 function closeStation(restore=false){
@@ -491,7 +493,7 @@ function applyOperating(preserve=true){
  document.body.classList.add('has-results');renderCards();drawResults(line,center,preserve);
 }
 function changeActive(){
- syncActive();const options=storage.get('evb-settings-v2',{});storage.set('evb-settings-v2',{...options,activeOnly:$('only-active').checked});
+ syncActive();const options=storage.get('udhembare-settings-v2',{});storage.set('udhembare-settings-v2',{...options,activeOnly:$('only-active').checked});
  applyOperating();
 }
 $('active-toggle').addEventListener('click',()=>{if(active)return;$('only-active').checked=!$('only-active').checked;changeActive();if(!lastSearch||savedView){savedView=false;$('search-form').requestSubmit();}});
@@ -517,9 +519,9 @@ $('search-form').addEventListener('submit',async event=>{
   const originQuery=$('origin').value.trim();
   if(mode==='route'&&$('origin-mode').value==='manual'&&!originQuery){toast('Vendos nisjen ose zgjidhe në hartë.',true);$('origin').focus();return;}
   const query=$('destination').value.trim();if(mode!=='near'&&!query){toast('Vendos një qytet, adresë ose koordinata.',true);return;}
-  storage.set('evb-origin',originQuery);storage.set('evb-origin-mode',$('origin-mode').value);
+  storage.set('udhembare-origin',originQuery);storage.set('udhembare-origin-mode',$('origin-mode').value);
   $('location-note').hidden=true;
-  storage.set('evb-settings-v2',options);if(query)storage.set('evb-query',query);
+  storage.set('udhembare-settings-v2',options);if(query)storage.set('udhembare-query',query);
   if($('search-dialog').open)$('search-dialog').close();showResults(false);viewingRadius=options.radius;
   $('radius-badge').textContent=`${options.radius} km`;$('filter-badge').textContent=options.connector==='all'?'Të gjithë':options.connector==='both'?'Për Audi':options.connector;
   closeStation();manualTravelOrigin=null;resetTerrain();const controller=new AbortController();active=controller;busy(true);savedView=false;lastSearch=null;candidates=[];stations=[];shown=0;clearMap();$('results').replaceChildren();$('load-more').hidden=true;$('result-count').hidden=true;$('results-title').textContent='Duke gjetur ndalesën tënde…';
@@ -551,7 +553,7 @@ $('search-form').addEventListener('submit',async event=>{
     if(active!==controller)return;
     candidates=checked;lastSearch={line,center,start,requestMode,routeKm,routeDuration,fetchedAt:data.fetchedAt,replayed:Boolean(replay)};
     const fresh=new Map(candidates.map(s=>[s.id,s]));
-    if(favourites.some(s=>fresh.has(s.id))){favourites=favourites.map(s=>fresh.get(s.id)||s);storage.set('evb-favourites',favourites);}
+    if(favourites.some(s=>fresh.has(s.id))){favourites=favourites.map(s=>fresh.get(s.id)||s);storage.set('udhembare-favourites',favourites);}
     applyOperating(false);
 
   }catch(error){

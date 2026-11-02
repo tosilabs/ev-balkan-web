@@ -1,3 +1,4 @@
+from project_info import USER_AGENT
 """Read-only diagnostics for explicitly public official charging data feeds."""
 import io,json,urllib.request,zipfile,concurrent.futures
 URLS={
@@ -13,7 +14,7 @@ def shape(value,depth=0):
 def inspect(item):
  name,url=item
  try:
-  req=urllib.request.Request(url,headers={'User-Agent':'EVBalkan/1.4 public-data integration (github.com/tosilabs/ev-balkan-web)'})
+  req=urllib.request.Request(url,headers={'User-Agent':USER_AGENT})
   with urllib.request.urlopen(req,timeout=45) as response:
    raw=response.read(60*1024*1024)
   if url.endswith('.zip'):
