@@ -1,0 +1,73 @@
+import {chromium} from 'playwright';
+import {createServer} from 'node:http';
+import {readFile,mkdir} from 'node:fs/promises';
+import {resolve,extname} from 'node:path';
+import assert from 'node:assert/strict';
+const root=resolve('dist');
+const types={'.html':'text/html','.mjs':'text/javascript','.js':'text/javascript','.css':'text/css','.svg':'image/svg+xml','.webmanifest':'application/manifest+json'};
+const server=createServer(async(req,res)=>{
+  try{const path=resolve(root,'.'+decodeURIComponent(new URL(req.url,'http://localhost').pathname));
+    if(path!==root&&!path.startsWith(root+'/')){res.writeHead(403).end();return;}
+    const file=path===root||path.endsWith('/')?resolve(path,'index.html'):path;
+    res.writeHead(200,{'Content-Type':types[extname(file)]||'application/octet-stream'});res.end(await readFile(file));
+  }catch{res.writeHead(404).end();}
+});
+await new Promise(resolve=>server.listen(8080,'127.0.0.1',resolve));
+let browser;
+const errors=[];
+const station={type:'node',id:123456789,lat:41.999,lon:21.426,tags:{amenity:'charging_station',name:'Karikues prove',operator:'Operator prove','socket:type2_combo':'2','socket:type2_combo:output':'150 kW','addr:city':'Shkup'}};
+try{
+  browser=await chromium.launch();
+  const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,geolocation:{latitude:41.9981,longitude:21.4254},permissions:['geolocation']});
+  const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));
+  await page.addInitScript(()=>Object.defineProperty(navigator,'share',{configurable:true,value:undefined}));
+  await page.route('https://photon.komoot.io/api/**',route=>route.fulfill({json:{features:[{geometry:{coordinates:[21.4254,41.9981]},properties:{name:'Shkup',country:'Maqedonia e Veriut'}}]}}));
+  await page.route('https://router.project-osrm.org/route/**',route=>route.fulfill({json:{code:'Ok',routes:[{distance:35000,geometry:{coordinates:[[21.4254,41.9981],[21.426,41.999],[21.5,42.1]]}}]}}));
+  await page.route('https://overpass-api.de/api/interpreter',route=>route.fulfill({json:{elements:[station]}}));
+  await page.route('https://overpass.kumi.systems/api/interpreter',route=>route.fulfill({json:{elements:[station]}}));
+  await page.goto('http://127.0.0.1:8080/',{waitUntil:'networkidle',timeout:60000});
+  assert.equal(await page.title(),'EV Balkan — Ndalesa jote e radhës');
+  assert.equal(await page.locator('body').evaluate(el=>el.scrollWidth<=innerWidth),true,'Mobile page overflows horizontally');
+  // This assertion exercises the actual Leaflet CDN, not a substitute map.
+  await page.waitForFunction(()=>Boolean(window.L&&document.querySelector('.leaflet-container')),{timeout:20000});
+  await page.getByRole('button',{name:'Gjej karikues'}).click();
+  await page.getByRole('heading',{name:'Karikues prove'}).waitFor();
+  assert.match(await page.locator('.station-card').innerText(),/150 kW/);
+  assert.match(await page.locator('.station-card').innerText(),/CCS2/);
+  await page.getByRole('button',{name:'Ruaj: Karikues prove',exact:true}).click();
+  assert.equal(await page.locator('#saved-count').innerText(),'1');
+  await page.getByRole('button',{name:'Dërgo te Audi'}).click();
+  await page.locator('#share-dialog').waitFor({state:'visible'});
+  assert.equal(await page.locator('#share-native').isDisabled(),true);
+  assert.match(await page.locator('#share-maps').getAttribute('href'),/query=41.999%2C21.426/);
+  await page.locator('[data-close="share-dialog"]').click();
+  await page.getByRole('tab',{name:'Një vend'}).click();
+  await page.locator('#destination').fill('Shkup');
+  await page.getByRole('button',{name:'Gjej karikues'}).click();
+  await page.locator('.place-option').click();
+  await page.getByRole('heading',{name:'Karikues prove'}).waitFor();
+  await page.getByRole('tab',{name:'Në rrugë'}).click();
+  await page.getByRole('button',{name:'Gjej karikues'}).click();
+  await page.locator('.place-option').click();
+  await page.getByRole('heading',{name:'Karikues përgjatë rrugës'}).waitFor();
+  await page.getByRole('heading',{name:'Karikues prove'}).waitFor();
+  await page.locator('#power').selectOption('150');
+  await page.locator('#connector').selectOption('Type 2');
+  await page.getByRole('button',{name:'Gjej karikues'}).click();
+  await page.locator('.place-option').click();
+  await page.locator('.empty-note').waitFor();
+  assert.match(await page.locator('.empty-note').innerText(),/Nuk u gjetën/);
+  await page.reload({waitUntil:'networkidle'});
+  assert.equal(await page.locator('#connector').inputValue(),'Type 2');
+  assert.equal(await page.locator('#power').inputValue(),'150');
+  assert.equal(await page.locator('#saved-count').innerText(),'1');
+  await page.getByRole('button',{name:/Të ruajturat/}).click();
+  await page.getByRole('heading',{name:'Karikues prove'}).waitFor();
+  await mkdir('browser-results',{recursive:true});
+  await page.screenshot({path:'browser-results/mobile.png',fullPage:true});
+  await page.setViewportSize({width:1440,height:1000});
+  await page.screenshot({path:'browser-results/desktop.png',fullPage:true});
+  assert.deepEqual(errors,[],'Browser JavaScript errors');
+  console.log('PASS: phone layout, Leaflet, three search modes, filters, saved stations, persistence and sharing fallback');
+  console.log('Search APIs used fixed test fixtures. Real availability, GPS hardware and myAudi delivery were not tested.');
+}finally{await browser?.close();await new Promise(resolve=>server.close(resolve));}
