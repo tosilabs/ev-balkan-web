@@ -16,6 +16,10 @@ await new Promise(resolve=>server.listen(8080,'127.0.0.1',resolve));
 let browser,page;
 const errors=[];
 const station={type:'node',id:123456789,lat:41.999,lon:21.426,tags:{amenity:'charging_station',name:'Karikues prove',operator:'Eldrive',wikimedia_commons:'File:Test charging point.png',description:'Charging point beside the entrance','socket:type2':'2','socket:type2:output':'22 kW','contact:email':'test@example.org',wheelchair:'yes','socket:type2_combo':'2','socket:type2_combo:output':'150 kW','addr:city':'Shkup'}};
+const weatherFixture=url=>{
+ const count=new URL(url).searchParams.get('latitude').split(',').length,start=Math.floor(Date.now()/3600000)*3600;
+ const data=Array.from({length:count},(_,i)=>({hourly:{time:Array.from({length:72},(_,h)=>start+h*3600),temperature_2m:Array(72).fill(i?-2:12),precipitation:Array(72).fill(i?6:0),precipitation_probability:Array(72).fill(i?90:10),snowfall:Array(72).fill(i?.5:0),weather_code:Array(72).fill(i?71:2),visibility:Array(72).fill(i?150:10000),wind_speed_10m:Array(72).fill(i?45:10),wind_gusts_10m:Array(72).fill(i?85:20)}}));return count===1?data[0]:data;
+};
 const contextOptions={viewport:{width:390,height:844},isMobile:true,hasTouch:true,geolocation:{latitude:41.9981,longitude:21.4254},permissions:['geolocation'],serviceWorkers:'block'};
 const waitSearch=page=>page.waitForFunction(()=>!document.body.classList.contains('busy')&&!document.querySelector('#result-count').hidden,null,{timeout:25000});
 async function searchPlace(page,mode){
@@ -29,6 +33,9 @@ async function searchPlace(page,mode){
 try{
  browser=await chromium.launch();
  const context=await browser.newContext(contextOptions);context.setDefaultTimeout(20000);page=await context.newPage();
+ let forecastCalls=0;await context.route('https://api.open-meteo.com/v1/forecast**',route=>{forecastCalls++;return route.fulfill({json:weatherFixture(route.request().url())});});
+ await context.route('https://api.rainviewer.com/public/weather-maps.json',route=>{const seconds=Math.floor(Date.now()/1000);return route.fulfill({json:{host:'https://tilecache.rainviewer.com',radar:{past:[{time:seconds-1200,path:'/v2/radar/111'},{time:seconds-600,path:'/v2/radar/222'}]}}});});
+ await context.route('https://tilecache.rainviewer.com/**',route=>route.fulfill({contentType:'image/png',body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNQqAj4DwADjAHo3Pmz1AAAAABJRU5ErkJggg==','base64')}));
  let elevationCalls=0;await context.route('https://api.open-meteo.com/v1/elevation**',route=>{elevationCalls++;const count=new URL(route.request().url()).searchParams.get('latitude').split(',').length;return route.fulfill({json:{elevation:Array.from({length:count},(_,i)=>200+150*Math.sin(i/5))}});});
  page.on('pageerror',error=>errors.push(error.message));
  await page.addInitScript(()=>Object.defineProperty(navigator,'share',{configurable:true,value:undefined}));
@@ -46,9 +53,9 @@ try{
  assert.equal(await page.locator('#results-panel').isVisible(),false,'List should not obstruct initial map');
  assert.equal(await page.locator('#search-dialog').isVisible(),false,'Fields should not obstruct initial map');
  assert.equal(await page.locator('#radius-badge').innerText(),'10 km');
- assert.equal(await page.locator('.leaflet-marker-icon').count(),1);
- assert.equal(await page.locator('.leaflet-marker-icon .map-marker').first().innerText(),'1');
- assert.equal(await page.locator('.leaflet-marker-icon .speed-ultra').count(),1);
+ assert.equal(await page.locator('.numbered-marker').count(),1);
+ assert.equal(await page.locator('.numbered-marker .map-marker').first().innerText(),'1');
+ assert.equal(await page.locator('.numbered-marker .speed-ultra').count(),1);
  assert.ok(await page.locator('.map-marker').first().evaluate(el=>el.getBoundingClientRect().width)<=26,'Map icon is too large');
  await page.locator('#list-open').click();
  await page.getByRole('heading',{name:'Karikues prove'}).waitFor();
@@ -76,7 +83,7 @@ try{
  assert.match(await page.locator('#share-maps').getAttribute('href'),/query=41.999%2C21.426/);
  await page.locator('[data-close="share-dialog"]').click();
  await page.locator('#station-close').click();await page.locator('#results-close').click();
- await page.locator('.leaflet-marker-icon').first().click();await page.locator('#station-panel').waitFor();await page.locator('#station-close').click();
+ await page.locator('.numbered-marker').first().click();await page.locator('#station-panel').waitFor();await page.locator('#station-close').click();
  await searchPlace(page,'place');await page.locator('#list-open').click();
  await page.getByRole('heading',{name:'Karikues prove'}).waitFor();
  await page.locator('#results-close').click();
@@ -86,6 +93,14 @@ try{
  assert.ok(await page.locator('.terrain-road.terrain-high').count()>0);assert.ok(await page.locator('.terrain-road.terrain-down').count()>0);assert.equal(await page.locator('.elevation-chart').count(),1);
  await page.locator('#terrain-chart input[type=range]').evaluate(el=>{el.value='10';el.dispatchEvent(new Event('input',{bubbles:true}));});assert.match(await page.locator('.profile-readout').innerText(),/km.*m.*%/);
  await page.screenshot({path:'browser-results/route-elevation-phone.png'});
+ await page.locator('#weather-open').click();await page.locator('.weather-row').first().waitFor();
+ assert.equal(await page.locator('#terrain-panel').isVisible(),false,'Weather and elevation panels must not overlap');
+ assert.ok(await page.locator('.weather-marker').count()>=2);assert.match(await page.locator('#weather-summary').innerText(),/Jo alarme zyrtare/);assert.ok(await page.locator('.weather-advisory').count()>0);
+ await page.locator('#radar-toggle').check();await page.locator('#radar-controls').waitFor();assert.match(await page.locator('#radar-status').innerText(),/Pamja:/);
+ await page.locator('#radar-play').click();await page.waitForTimeout(1100);await page.getByRole('button',{name:'Ndalo animacionin e radarit'}).click();
+ assert.equal(await page.locator('#radar-frame').getAttribute('max'),'1');await page.screenshot({path:'browser-results/route-weather-radar-phone.png'});
+ await page.locator('#radar-toggle').uncheck();assert.equal(await page.locator('#radar-controls').isVisible(),false);await page.locator('#weather-close').click();
+
  const callsBeforeReplay=elevationCalls;
  await page.locator('#history-open').click();assert.ok(await page.locator('.history-item').count()>=2);
  await page.locator('.history-item>button:first-child').filter({hasText:'Itinerar'}).first().click();await waitSearch(page);
@@ -110,7 +125,7 @@ try{
  await page.route('**/data/charging-balkans.json',route=>route.fulfill({json:{bounds:[34,12,48.5,30],fetchedAt:new Date().toISOString(),elements:lots}}));
  await page.locator('#filters-open').click();await page.getByRole('tab',{name:'Pranë meje'}).click();await page.locator('#connector').selectOption('all');await page.locator('#power').selectOption('0');
  await page.getByRole('button',{name:'Gjej karikues'}).click();await waitSearch(page);
- assert.equal(await page.locator('.leaflet-marker-icon').count(),230,'Markers must not be capped at 200');
+ assert.equal(await page.locator('.numbered-marker').count(),230,'Markers must not be capped at 200');
  assert.equal(await page.locator('#result-count').innerText(),'230');
  assert.equal(await page.locator('.map-marker').last().innerText(),'230');
  await mkdir('browser-results',{recursive:true});await page.screenshot({path:'browser-results/fullscreen-mobile.png'});
@@ -126,6 +141,7 @@ try{
  await pending.abort().catch(()=>{});
  assert.deepEqual(errors,[],'Browser JavaScript errors');
  const live=await browser.newContext(contextOptions),livePage=await live.newPage();
+ await live.route('https://api.open-meteo.com/v1/forecast**',route=>route.fulfill({json:weatherFixture(route.request().url())}));
  await livePage.route(/https:\/\/(photon\.komoot\.io|overpass-api\.de|overpass\.private\.coffee)\//,route=>route.abort());
  await livePage.goto('http://127.0.0.1:8080/',{waitUntil:'networkidle'});await waitSearch(livePage);
  assert.ok(Number(await livePage.locator('#result-count').innerText())>0,'Real registry produced no chargers near Skopje');
@@ -139,6 +155,7 @@ try{
  await livePage.locator('[data-close="sources-dialog"]').click();await livePage.locator('[data-close="help-dialog"]').click();
  await live.close();
  const operatorContext=await browser.newContext({...contextOptions,geolocation:{latitude:42.6977,longitude:23.3219}}),operatorPage=await operatorContext.newPage();
+ await operatorContext.route('https://api.open-meteo.com/v1/forecast**',route=>route.fulfill({json:weatherFixture(route.request().url())}));
  const finesRecord={type:'fines',id:'123',lat:42.698,lon:23.322,finesId:'123',tags:{name:'Fines test location',operator:'Fines Charging'},connections:[{label:'CCS2',current:'DC',power:150,count:2}],provenance:[{name:'Fines Charging',url:'https://finescharging.com/public-api',license:'Public API'}]};
  await operatorPage.route('**/data/charging-balkans.json',route=>route.fulfill({json:{bounds:[34,12,48.5,30],fetchedAt:new Date().toISOString(),elements:[finesRecord,{...finesRecord,id:'124',finesId:'124',lat:42.699,tags:{name:'Fines offline',operator:'Fines Charging'}},{...finesRecord,id:'125',finesId:'125',lat:42.700,tags:{name:'Fines unconfirmed',operator:'Fines Charging'}}]}}));
  let liveCalls=0;await operatorPage.route('https://public.finescharging.com/v1/live.json',route=>{liveCalls++;return route.fulfill({json:{generated_at:new Date().toISOString(),locations:[{location_id:123,connectors:[{plug_type:'CCS Combo 2',max_power_kw:150,available:true,status:'Available'},{plug_type:'CCS Combo 2',max_power_kw:150,available:false,status:'Charging'}]},{location_id:124,connectors:[{plug_type:'CCS Combo 2',max_power_kw:150,available:false,status:'Offline'}]}]}});});
@@ -169,12 +186,14 @@ try{
  assert.match(await deniedPage.locator('#origin').inputValue(),/^-?\d+\.\d+,-?\d+\.\d+$/);assert.equal(await deniedPage.locator('#tab-route').getAttribute('aria-selected'),'true');assert.equal(await deniedPage.locator('#destination').inputValue(),'42.1,21.5');
  await deniedPage.locator('#pick-destination').click();await deniedPage.locator('#map').click({position:{x:180,y:410}});await deniedPage.locator('#destination').waitFor();assert.equal(await deniedPage.locator('#tab-route').getAttribute('aria-selected'),'true');
  await deniedPage.screenshot({path:'browser-results/manual-origin-phone.png'});
+ await deniedPage.locator('[data-close="search-dialog"]').click();await deniedPage.locator('#weather-open').click();await deniedPage.waitForFunction(()=>document.querySelector('#weather-status').textContent.includes('nuk u mor'),null,{timeout:20000});assert.equal(await deniedPage.locator('.weather-row').count(),0);await deniedPage.locator('#weather-close').click();await deniedPage.locator('#search-open').click();
  await deniedPage.locator('[data-close="search-dialog"]').click();
  await deniedPage.locator('#list-open').click();await deniedPage.locator('.open-station').first().click();await deniedPage.locator('#station-panel').waitFor();
  await deniedPage.locator('#travel-manual').click();await deniedPage.locator('#travel-origin').fill('41.9981,21.4254');await deniedPage.getByRole('button',{name:'Llogarit udhëtimin'}).click();
  await deniedPage.waitForFunction(()=>document.querySelector('#travel-value').textContent.includes('→'),null,{timeout:20000});assert.match(await deniedPage.locator('#travel-note').innerText(),/Nga nisja manuale/);
  await deniedPage.locator('#travel-manual').click();await deniedPage.locator('#travel-pick').click();await deniedPage.locator('#map').click({position:{x:170,y:340}});await deniedPage.locator('#station-panel').waitFor();assert.equal(await deniedPage.locator('#tab-route').getAttribute('aria-selected'),'true');
  await denied.close();
+ console.log('PASS: route forecast markers and advisories, separate panels, radar playback and graceful weather service failure');
  console.log('PASS: compact station sheet, driving distance and time, manual origin and map origin without GPS');
  console.log('PASS: full-route elevation, graded map colors, interactive chart, cached history across reloads, and unknown-data fallback');
  console.log('PASS: GPS denied recovery, manual route coordinates and city, separate origin/destination map picking, provider logo, official apps, email and connector details');

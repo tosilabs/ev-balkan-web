@@ -1,7 +1,7 @@
-import {requestJson} from './services.mjs?v=1.8';
-import {webUrl} from './details.mjs?v=1.8';
-import {availabilitySummary,finesLocation,connectorState} from './operating.mjs?v=1.8';
-export {availabilitySummary} from './operating.mjs?v=1.8';
+import {requestJson} from './services.mjs?v=1.9';
+import {webUrl} from './details.mjs?v=1.9';
+import {availabilitySummary,finesLocation,connectorState} from './operating.mjs?v=1.9';
+export {availabilitySummary} from './operating.mjs?v=1.9';
 const node=(tag,value,className)=>{const n=document.createElement(tag);n.textContent=value;if(className)n.className=className;return n;};
 const link=(label,url)=>{const a=node('a',label);a.href=url;a.target='_blank';a.rel='noopener noreferrer';return a;};
 export function finesLiveSection(id){

@@ -1,16 +1,19 @@
-import {point,coordinates,distance,bounds,settings,parseStations,validStationId,destinationUrl,shareData,navigationUrl} from './core.mjs?v=1.8';
-import {localPlaces} from './cities.mjs?v=1.8';
-import {requestJson as json,loadCharging} from './services.mjs?v=1.8';
-import {externalLocationUrl,bestClass,webUrl,setProviderCatalog} from './details.mjs?v=1.8';
-import {photoSection} from './photos.mjs?v=1.8';
-import {finesLiveSection,showSources} from './sources-ui.mjs?v=1.8';
-import {checkOperating,currentOperating,workingOnly} from './operating.mjs?v=1.8';
-import {loadTerrain,coloredPieces,TERRAIN} from './terrain.mjs?v=1.8';
-import {renderProfile} from './terrain-ui.mjs?v=1.8';
-import {cleanHistory,cleanHistoryEntry,addHistory,encodeHistory,historyLabel} from './history.mjs?v=1.8';
-import {stationTravel,formatTravel} from './travel.mjs?v=1.8';
-import {initBasemap} from './basemap.mjs?v=1.8';
+import {point,coordinates,distance,bounds,settings,parseStations,validStationId,destinationUrl,shareData,navigationUrl} from './core.mjs?v=1.9';
+import {localPlaces} from './cities.mjs?v=1.9';
+import {requestJson as json,loadCharging} from './services.mjs?v=1.9';
+import {externalLocationUrl,bestClass,webUrl,setProviderCatalog} from './details.mjs?v=1.9';
+import {photoSection} from './photos.mjs?v=1.9';
+import {finesLiveSection,showSources} from './sources-ui.mjs?v=1.9';
+import {checkOperating,currentOperating,workingOnly} from './operating.mjs?v=1.9';
+import {loadTerrain,coloredPieces,TERRAIN} from './terrain.mjs?v=1.9';
+import {renderProfile} from './terrain-ui.mjs?v=1.9';
+import {cleanHistory,cleanHistoryEntry,addHistory,encodeHistory,historyLabel} from './history.mjs?v=1.9';
+import {stationTravel,formatTravel} from './travel.mjs?v=1.9';
+import {initBasemap} from './basemap.mjs?v=1.9';
 let detailStation=null,stationFromList=false,travelController=null,manualTravelOrigin=null,deviceLocation=null,gpsDenied=false;
+import {routeWeatherPoints,fetchWeather,selectForecast,radarFrames,radarTile} from './weather.mjs?v=1.9';
+import {renderWeatherRows} from './weather-ui.mjs?v=1.9';
+let weatherState=null,weatherController=null,weatherLayer=null,radarData=null,radarFetchedAt=0,radarController=null,radarLayer=null,radarCoverage=null,radarTimer=null;
 let candidates=[],lastSearch=null,routeState=null,terrainController=null,terrainMarker=null,chartControl=null,pendingReplay=null;
 const $=id=>document.getElementById(id);
 const providerReady=json(new URL('./data/providers.json',import.meta.url).href,{timeout:4000}).catch(()=>json(new URL('./providers.json',import.meta.url).href,{timeout:4000})).then(setProviderCatalog).catch(()=>{});
@@ -32,8 +35,8 @@ syncOrigin();
 $('destination').value=String(storage.get('evb-query','')).slice(0,300);
 function text(tag,value,className){const node=document.createElement(tag);node.textContent=value;if(className)node.className=className;return node;}
 function toast(message,error=false){$('status').textContent=message;$('status').title=message;$('results-note').textContent=message;$('status').classList.toggle('error',error);}
-function showResults(open=true){if(open){closeStation();setTerrainOpen(false);}$('results-panel').hidden=!open;document.body.classList.toggle('results-open',open);$('list-open').setAttribute('aria-expanded',String(open));}
-function openSearch(){closeStation();setTerrainOpen(false);showResults(false);$('search-dialog').showModal();}
+function showResults(open=true){if(open){closeStation();setTerrainOpen(false);setWeatherOpen(false);}$('results-panel').hidden=!open;document.body.classList.toggle('results-open',open);$('list-open').setAttribute('aria-expanded',String(open));}
+function openSearch(){setWeatherOpen(false);closeStation();setTerrainOpen(false);showResults(false);$('search-dialog').showModal();}
 $('search-open').addEventListener('click',openSearch);
 $('filters-open').addEventListener('click',openSearch);
 $('list-open').addEventListener('click',()=>showResults($('results-panel').hidden));
@@ -138,17 +141,98 @@ async function route(start,end,signal){
       const data=await json(base+path,{signal,timeout:12000});
       const r=data.routes?.[0];if(data.code!=='Ok'||!r?.geometry?.coordinates?.length||!Number.isFinite(r.distance)||r.distance<=0)continue;
       if(r.distance>1500000)throw Error('Versioni i parë mbështet itinerare deri në 1500 km. Kërko pjesë të rrugës.');
-      return {line:r.geometry.coordinates.map(c=>point(c[1],c[0])),km:r.distance/1000};
+      return {line:r.geometry.coordinates.map(c=>point(c[1],c[0])),km:r.distance/1000,duration:Number.isFinite(r.duration)&&r.duration>0?r.duration:null};
     }catch(error){if(signal.aborted)throw error;if(error.message.includes('1500 km'))throw error;}
   }
   throw Error('Itinerari nuk u llogarit. Provo “Një vend” për të gjetur karikues pranë destinacionit.');
 }
+function setWeatherOpen(open){
+ if(open){closeStation();setTerrainOpen(false);showResults(false);}
+ $('weather-panel').hidden=!open;document.body.classList.toggle('weather-open-state',open);$('weather-open').setAttribute('aria-expanded',String(open));
+ if(!open)stopRadarAnimation();
+}
+function resetRouteWeather(){weatherController?.abort();weatherController=null;weatherState=null;if(weatherLayer&&map)map.removeLayer(weatherLayer);weatherLayer=null;setWeatherOpen(false);$('weather-rows').replaceChildren();$('weather-summary').textContent='';$('weather-time-note').textContent='';$('weather-status').textContent='Zgjidh një vend ose krijo itinerar për motin.';}
+function weatherPick(p,index){
+ if(map)map.panTo([p.lat,p.lon],{animate:!matchMedia('(prefers-reduced-motion: reduce)').matches});
+ document.querySelectorAll('.weather-row').forEach((row,i)=>row.classList.toggle('weather-row-active',i===index));
+}
+function drawWeatherPins(points){
+ if(weatherLayer&&map)map.removeLayer(weatherLayer);weatherLayer=null;
+ if(!map||!$('weather-pins').checked)return;
+ if(!map.getPane('weatherPins')){map.createPane('weatherPins');map.getPane('weatherPins').style.zIndex='590';}
+ weatherLayer=L.layerGroup([],{attribution:'Moti: <a href="https://open-meteo.com/">Open-Meteo</a>'}).addTo(map);
+ points.forEach((p,i)=>{
+  const severity=p.advisories.some(a=>a.level==='high')?'high':p.advisories.length?'notice':'';
+  const icon=L.divIcon({className:'weather-marker',html:`<span class="weather-map-pill ${severity}"><span>${p.kind.icon}</span><span>${p.temperature===null?'—':Math.round(p.temperature)+'°'}</span></span>`,iconSize:[65,32],iconAnchor:[-7,35]});
+  L.marker([p.lat,p.lon],{icon,pane:'weatherPins',title:`${p.km.toFixed(0)} km · ${p.kind.name} · ${p.temperature===null?'Pa temperaturë':p.temperature+'°C'}`,keyboard:true}).addTo(weatherLayer).on('click',()=>{if(picking)return;setWeatherOpen(true);weatherPick(p,i);$('weather-rows').children[i]?.scrollIntoView({block:'nearest'});});
+ });
+}
+function renderRouteWeather(){
+ const state=weatherState;if(!state)return;
+ $('weather-title').textContent=state.line?'Moti gjatë udhëtimit':'Moti pranë vendit';$('weather-refresh').disabled=state.loading;
+ $('weather-status').textContent=state.loading?'Duke marrë parashikimin…':state.error?state.error:`Open-Meteo · marrë më ${new Date(state.data.fetchedAt).toLocaleString('sq-AL')}${Date.now()-Date.parse(state.data.fetchedAt)>20*60000?' · të dhëna të vjetra, rifresko':''}`;
+ if(state.loading||state.error){if(state.error){state.forecast=null;$('weather-rows').replaceChildren();$('weather-time-note').textContent='';if(weatherLayer&&map)map.removeLayer(weatherLayer);weatherLayer=null;}$('weather-summary').textContent=state.loading?'Parashikimi nuk e pengon kërkimin e karikuesve.':'Moti është i padisponueshëm. Rruga dhe karikuesit mbeten të përdorshëm.';return;}
+ const arrival=$('weather-mode').value==='arrival',points=selectForecast(state.data,state.points,{departure:state.departure,duration:state.duration,arrival});state.forecast=points;
+ $('weather-time-note').textContent=state.line&&arrival&&state.duration?`Nisja: ${new Date(state.departure).toLocaleTimeString('sq-AL',{hour:'2-digit',minute:'2-digit'})}. Ora në secilën pikë është e përafërt, pa ndalesa ose trafik aktual. Orët sipas telefonit.`:'Parashikim për orën e kërkimit, jo matje e drejtpërdrejtë. Orët sipas telefonit.';
+ const known=points.filter(p=>p.temperature!==null).length,signals=points.filter(p=>p.advisories.length).length;
+ $('weather-summary').textContent=`${known}/${points.length} pika me temperaturë · ${signals} pika me sinjale moti nga app-i. ${signals?'Hap pikat për detajet.':'Mungesa e sinjaleve nuk përjashton rreziqe.'} Jo alarme zyrtare.`;
+ renderWeatherRows($('weather-rows'),points,weatherPick);drawWeatherPins(points);
+}
+function requestRouteWeather(state,force=false){
+ weatherController?.abort();const controller=new AbortController();weatherController=controller;state.loading=true;state.error='';renderRouteWeather();
+ fetchWeather(state.points,{signal:controller.signal,force}).then(data=>{if(controller.signal.aborted||weatherState!==state)return;state.data=data;state.loading=false;renderRouteWeather();}).catch(error=>{if(controller.signal.aborted||weatherState!==state)return;state.loading=false;state.error='Parashikimi nuk u mor. Provo “Rifresko”.';renderRouteWeather();});
+}
+function prepareRouteWeather(line,center,duration=null){
+ try{weatherState={line,points:routeWeatherPoints(line,center),duration,departure:Date.now(),loading:true,data:null,error:''};requestRouteWeather(weatherState);}
+ catch{weatherState=null;$('weather-status').textContent='Nuk u përgatitën pikat e motit për këtë rrugë.';}
+}
+function stopRadarAnimation(){clearInterval(radarTimer);radarTimer=null;$('radar-play').textContent='▶';$('radar-play').setAttribute('aria-label','Luaj animacionin e radarit');}
+function radarPanes(){for(const [name,z] of [['radarCoverage',290],['radarRain',300]])if(!map.getPane(name)){map.createPane(name);map.getPane(name).style.zIndex=String(z);map.getPane(name).style.pointerEvents='none';}}
+function removeRadar(){radarController?.abort();stopRadarAnimation();if(radarLayer&&map)map.removeLayer(radarLayer);if(radarCoverage&&map)map.removeLayer(radarCoverage);radarLayer=null;radarCoverage=null;document.body.classList.remove('radar-active');$('radar-controls').hidden=true;}
+function showRadarFrame(index){
+ if(!map||!radarData||!$('radar-toggle').checked)return;
+ const frame=radarData.frames[index];if(!frame)return;radarPanes();$('radar-frame').value=String(index);
+ const url=radarTile(radarData,index),opacity=Number($('radar-opacity').value)/100;
+ if(radarLayer)radarLayer.setUrl(url);else{
+  radarLayer=L.tileLayer(url,{pane:'radarRain',minZoom:2,maxZoom:19,maxNativeZoom:7,opacity,attribution:'Radar: <a href="https://www.rainviewer.com/">RainViewer</a>'}).addTo(map);
+  radarLayer.on('tileerror',()=>{if($('radar-toggle').checked)$('radar-status').textContent='Disa pjesë të radarit nuk u ngarkuan. Mos e merr pamjen bosh si mungesë reshjesh.';});
+ }
+ if($('radar-coverage').checked&&!radarCoverage)radarCoverage=L.tileLayer(`${radarData.host}/v2/coverage/0/256/{z}/{x}/{y}/0/0_0.png`,{pane:'radarCoverage',maxNativeZoom:7,maxZoom:19,opacity:.22,interactive:false}).addTo(map);
+ if(!$('radar-coverage').checked&&radarCoverage){map.removeLayer(radarCoverage);radarCoverage=null;}
+ $('radar-status').textContent=`Pamja: ${new Date(frame.time*1000).toLocaleString('sq-AL')}${radarData.stale?' · pamje e vjetër':''}. Koha është e kornizës, jo e çdo matjeje. Mbulimi ndryshon sipas zonës.`;
+ $('radar-controls').hidden=false;document.body.classList.add('radar-active');
+}
+async function enableRadar(force=false){
+ if(!map){$('radar-toggle').checked=false;$('radar-status').textContent='Harta nuk u ngarkua; radari nuk mund të shfaqet.';return;}
+ radarController?.abort();const controller=new AbortController();radarController=controller;stopRadarAnimation();$('radar-status').textContent='Duke marrë pamjet e radarit…';
+ try{
+  if(force||!radarData||Date.now()-radarFetchedAt>300000){const response=await json('https://api.rainviewer.com/public/weather-maps.json',{signal:controller.signal,timeout:10000});if(controller.signal.aborted)return;radarData=radarFrames(response);radarFetchedAt=Date.now();}
+  if(controller.signal.aborted||!$('radar-toggle').checked)return;
+  $('radar-frame').max=String(radarData.frames.length-1);showRadarFrame(radarData.frames.length-1);
+ }catch(error){if(controller.signal.aborted)return;removeRadar();$('radar-toggle').checked=false;$('radar-status').textContent='Radari nuk u mor ose pamjet janë tepër të vjetra. Provo përsëri.';}
+}
+$('weather-open').addEventListener('click',()=>{setWeatherOpen($('weather-panel').hidden);if(!weatherState)$('weather-status').textContent='Kërko një vend ose krijo itinerar për parashikimin. Radarin mund ta aktivizosh edhe tani.';});
+$('weather-close').addEventListener('click',()=>setWeatherOpen(false));
+$('weather-pins').addEventListener('change',()=>{if(weatherState?.forecast)drawWeatherPins(weatherState.forecast);});
+$('weather-mode').addEventListener('change',()=>{if(weatherState?.data)renderRouteWeather();});
+$('weather-refresh').addEventListener('click',()=>{if(weatherState){weatherState.departure=Date.now();requestRouteWeather(weatherState,true);}if($('radar-toggle').checked)enableRadar(true);});
+$('radar-toggle').addEventListener('change',()=>{if($('radar-toggle').checked)enableRadar();else{removeRadar();$('radar-status').textContent='Radari është i çaktivizuar.';}});
+$('radar-frame').addEventListener('input',()=>{stopRadarAnimation();showRadarFrame(Number($('radar-frame').value));});
+$('radar-opacity').addEventListener('input',()=>radarLayer?.setOpacity(Number($('radar-opacity').value)/100));
+$('radar-coverage').addEventListener('change',()=>showRadarFrame(Number($('radar-frame').value)));
+$('radar-play').addEventListener('click',()=>{
+ if(radarTimer){stopRadarAnimation();return;}if(!radarData||!$('radar-toggle').checked)return;
+ $('radar-play').textContent='Ⅱ';$('radar-play').setAttribute('aria-label','Ndalo animacionin e radarit');radarTimer=setInterval(()=>showRadarFrame((Number($('radar-frame').value)+1)%radarData.frames.length),1000);
+});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)stopRadarAnimation();});
+
 function setTerrainOpen(open){
  if(open&&!routeState)return;
- if(open)showResults(false);
+ if(open){setWeatherOpen(false);showResults(false);}
  $('terrain-panel').hidden=!open;document.body.classList.toggle('terrain-open-state',open);$('terrain-open').setAttribute('aria-expanded',String(open));
 }
 function resetTerrain(){
+ resetRouteWeather();
  terrainController?.abort();terrainController=null;routeState=null;chartControl=null;
  if(terrainMarker&&map)map.removeLayer(terrainMarker);terrainMarker=null;
  setTerrainOpen(false);$('terrain-open').hidden=true;$('terrain-chart').replaceChildren();$('terrain-metrics').replaceChildren();
@@ -331,7 +415,7 @@ function syncStationCondition(){
 }
 function syncStationSave(){if(!detailStation)return;const saved=favourite(detailStation);$('station-save').textContent=saved?'♥':'♡';$('station-save').setAttribute('aria-pressed',String(saved));$('station-save').setAttribute('aria-label',(saved?'Hiq nga të ruajturat: ':'Ruaj: ')+detailStation.name);}
 function openStation(station,fromList=false){
- closeStation();detailStation=station;stationFromList=fromList;showResults(false);setTerrainOpen(false);
+ setWeatherOpen(false);closeStation();detailStation=station;stationFromList=fromList;showResults(false);setTerrainOpen(false);
  document.body.classList.add('station-open');$('station-panel').hidden=false;markers?.eachLayer(marker=>marker.getElement?.()?.classList.toggle('marker-selected',marker.options.stationId===station.id));
  $('station-title').textContent=station.name;$('station-address').textContent=station.address||'Adresa e paspecifikuar';syncStationSave();
  const profile=providerPanel(station),identity=profile.querySelector('.provider-identity');$('station-brand').replaceChildren(identity);
@@ -441,7 +525,7 @@ $('search-form').addEventListener('submit',async event=>{
   closeStation();manualTravelOrigin=null;resetTerrain();const controller=new AbortController();active=controller;busy(true);savedView=false;lastSearch=null;candidates=[];stations=[];shown=0;clearMap();$('results').replaceChildren();$('load-more').hidden=true;$('result-count').hidden=true;$('results-title').textContent='Duke gjetur ndalesën tënde…';
   const requestMode=mode;
   try{
-    let center,start=null,line=null,routeKm=null;
+    let center,start=null,line=null,routeKm=null,routeDuration=null;
     if(replay)center=replay.center;
     else if(requestMode==='near'){toast('Duke marrë vendndodhjen…');try{center=await locate(controller.signal);}catch(error){if(controller.signal.aborted)throw error;locationRecovery(error,requestMode);}}
     else{toast('Duke kërkuar destinacionin…');center=await place(query,controller.signal);}
@@ -450,10 +534,11 @@ $('search-form').addEventListener('submit',async event=>{
      if(replay)start=replay.start;
      else if($('origin-mode').value==='manual'){toast('Duke kërkuar pikën e nisjes…');start=await place(originQuery,controller.signal,'Zgjidh pikën e nisjes');}
      else try{start=await locate(controller.signal);}catch(error){if(controller.signal.aborted)throw error;locationRecovery(error,requestMode);}
-     const r=replay?.line?{line:replay.line,km:replay.routeKm}:await route(start,center,controller.signal);line=r.line;routeKm=r.km;
+     const r=replay?.line?{line:replay.line,km:replay.routeKm,duration:replay.routeDuration}:await route(start,center,controller.signal);line=r.line;routeKm=r.km;routeDuration=r.duration;
      if(controller.signal.aborted)return;prepareTerrain(line,routeKm,center,replay?.terrain);
     }
-    const historyId=rememberSearch({mode:requestMode,query:requestMode==='near'?'':replay?.query||query,origin:requestMode==='route'?(replay?.origin||($('origin-mode').value==='manual'?originQuery:`${start.lat.toFixed(4)}, ${start.lon.toFixed(4)}`)):'',center,start,line,routeKm,options,terrain:routeState?.terrain});
+    if(controller.signal.aborted)return;prepareRouteWeather(line,center,routeDuration);
+    const historyId=rememberSearch({mode:requestMode,query:requestMode==='near'?'':replay?.query||query,origin:requestMode==='route'?(replay?.origin||($('origin-mode').value==='manual'?originQuery:`${start.lat.toFixed(4)}, ${start.lon.toFixed(4)}`)):'',center,start,line,routeKm,routeDuration,options,terrain:routeState?.terrain});
     if(routeState)routeState.historyId=historyId;
 
     if(controller.signal.aborted)return;
@@ -464,7 +549,7 @@ $('search-form').addEventListener('submit',async event=>{
     if(active!==controller)return;
     const checked=await checkOperating(parseStations(data,options,center,line),{signal:controller.signal,minPower:options.minPower});
     if(active!==controller)return;
-    candidates=checked;lastSearch={line,center,start,requestMode,routeKm,fetchedAt:data.fetchedAt,replayed:Boolean(replay)};
+    candidates=checked;lastSearch={line,center,start,requestMode,routeKm,routeDuration,fetchedAt:data.fetchedAt,replayed:Boolean(replay)};
     const fresh=new Map(candidates.map(s=>[s.id,s]));
     if(favourites.some(s=>fresh.has(s.id))){favourites=favourites.map(s=>fresh.get(s.id)||s);storage.set('evb-favourites',favourites);}
     applyOperating(false);

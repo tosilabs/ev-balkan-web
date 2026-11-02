@@ -1,5 +1,5 @@
-import {point} from './core.mjs?v=1.8';
-import {requestJson} from './services.mjs?v=1.8';
+import {point} from './core.mjs?v=1.9';
+import {requestJson} from './services.mjs?v=1.9';
 const cache=new Map();
 export function formatTravel(data){
  if(!Number.isFinite(data.distance)||data.distance<0||!Number.isFinite(data.duration)||data.duration<0)throw Error('Mungon largësia ose koha e udhëtimit.');

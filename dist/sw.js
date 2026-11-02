@@ -1,5 +1,5 @@
-const CACHE='ev-balkan-shell-v10';
-const SHELL=['./','./index.html','./styles.css?v=1.8','./app.mjs?v=1.8','./core.mjs?v=1.8','./services.mjs?v=1.8','./cities.mjs?v=1.8','./details.mjs?v=1.8','./photos.mjs?v=1.8','./sources-ui.mjs?v=1.8','./operating.mjs?v=1.8','./terrain.mjs?v=1.8','./terrain-ui.mjs?v=1.8','./history.mjs?v=1.8','./travel.mjs?v=1.8','./basemap.mjs?v=1.8','./providers.json','./icon.svg','./manifest.webmanifest'];
+const CACHE='ev-balkan-shell-v11';
+const SHELL=['./','./index.html','./styles.css?v=1.9','./app.mjs?v=1.9','./core.mjs?v=1.9','./services.mjs?v=1.9','./cities.mjs?v=1.9','./details.mjs?v=1.9','./photos.mjs?v=1.9','./sources-ui.mjs?v=1.9','./operating.mjs?v=1.9','./terrain.mjs?v=1.9','./terrain-ui.mjs?v=1.9','./history.mjs?v=1.9','./travel.mjs?v=1.9','./basemap.mjs?v=1.9','./weather.mjs?v=1.9','./weather-ui.mjs?v=1.9','./providers.json','./icon.svg','./manifest.webmanifest'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting()));});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('ev-balkan-shell-')&&key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});
 // Cache the shell and the public regional registry, never personal searches or map tiles.

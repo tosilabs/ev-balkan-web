@@ -1,5 +1,5 @@
-import {point,settings} from './core.mjs?v=1.8';
-import {makeProfile} from './terrain.mjs?v=1.8';
+import {point,settings} from './core.mjs?v=1.9';
+import {makeProfile} from './terrain.mjs?v=1.9';
 const MODES=['near','place','route'];
 const trim=x=>typeof x==='string'?x.slice(0,300):'';
 // Ramer-Douglas-Peucker retains turns. Increase tolerance only for unusually detailed routes.
@@ -30,7 +30,7 @@ export function cleanHistoryEntry(raw){
     terrain=makeProfile(samples,raw.terrain.points.map(p=>p.elevation),{sources:(raw.terrain.sources||[]).filter(s=>['open-meteo','opentopodata'].includes(s)),fetchedAt:trim(raw.terrain.fetchedAt),smoothed:true});
    }
   }
-  return {id:typeof raw.id==='string'&&/^h[a-z0-9-]{3,80}$/.test(raw.id)?raw.id:'h'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,9),mode:raw.mode,query:trim(raw.query),origin:trim(raw.origin),center,start,line,routeKm:line?raw.routeKm:null,options:settings(raw.options),terrain,at:Number.isFinite(raw.at)?raw.at:Date.now()};
+  return {id:typeof raw.id==='string'&&/^h[a-z0-9-]{3,80}$/.test(raw.id)?raw.id:'h'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,9),mode:raw.mode,query:trim(raw.query),origin:trim(raw.origin),center,start,line,routeKm:line?raw.routeKm:null,routeDuration:line&&Number.isFinite(raw.routeDuration)&&raw.routeDuration>0&&raw.routeDuration<7*86400?raw.routeDuration:null,options:settings(raw.options),terrain,at:Number.isFinite(raw.at)?raw.at:Date.now()};
  }catch{return null;}
 }
 export function cleanHistory(raw){return (Array.isArray(raw)?raw:[]).slice(0,30).map(cleanHistoryEntry).filter(Boolean);}
