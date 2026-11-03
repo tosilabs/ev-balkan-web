@@ -4,6 +4,7 @@
 
 - Kërkimi dhe menuja kryesore qëndrojnë në një shirit. Të ruajturat, historiku, burimet dhe cilësimet gjenden në menu.
 - Vetëm vendndodhja dhe butoni Harta qëndrojnë në një grup anësor. Harta hap motin, profilin, raportimet, pamjen e plotë, zgjedhjen e pikës, filtrin Në punë dhe zmadhimin.
+- Paneli i listës i vendos shënimet e burimeve dhe filtrat e plotë në një seksion të palosur; gabimet e hapin automatikisht. Mjetet anësore fshihen kur hapet një panel, që të mos mbulojnë mbylljen apo përmbajtjen.
 - Poshtë mbeten Filtrat, Udhëtimi dhe Karikuesit. Nisja e navigimit, kërkimi në zonë dhe sinjalet e motit grupohen mbi këtë shirit. Konteksti fshihet kur hapet një panel informacioni.
 - Profili i lartësisë llogaritet pa hapur automatikisht panelin mbi hartë. Pikat e motit në hartë janë opsionale dhe zgjedhja ruhet në këtë telefon. Parashikimi dhe sinjalet e itinerarit vazhdojnë të llogariten.
 - Stacioni jep përparësi navigimit dhe dërgimit te Audi. Lidhjet e tjera hapen te Më shumë. Informacioni i plotë i operatorit, lidhësve dhe burimeve mbetet i aksesueshëm.

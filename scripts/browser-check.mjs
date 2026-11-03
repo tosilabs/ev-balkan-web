@@ -213,7 +213,7 @@ try{
  const gpsCalls=await deniedPage.evaluate(()=>window.gpsCalls);
  await deniedPage.locator('#origin').fill('41.9981,21.4254');await deniedPage.getByRole('button',{name:'Gjej karikues'}).click();await waitSearch(deniedPage);
  await deniedPage.waitForFunction(()=>document.querySelector('#terrain-status').textContent.includes('Lartësia nuk u mor'),null,{timeout:20000});
- assert.ok(await deniedPage.locator('.terrain-road.terrain-unknown').count()>0);assert.equal(await deniedPage.locator('#terrain-retry').isVisible(),true);
+ assert.ok(await deniedPage.locator('.terrain-road.terrain-unknown').count()>0);await deniedPage.locator('#layers-open').click();await deniedPage.locator('#terrain-open').click();assert.equal(await deniedPage.locator('#terrain-retry').isVisible(),true);
  assert.match(routeRequest,/21.4254,41.9981;21.5,42.1/);assert.equal(await deniedPage.evaluate(()=>window.gpsCalls),gpsCalls,'Manual route must never request GPS');assert.equal(await deniedPage.locator('.user-location-marker').count(),0,'Manual route origin is not device position');
  await deniedPage.locator('#search-open').click();await deniedPage.locator('#origin').fill('Shkup');await deniedPage.getByRole('button',{name:'Gjej karikues'}).click();await deniedPage.getByRole('heading',{name:'Zgjidh pikën e nisjes'}).waitFor();await deniedPage.locator('.place-option').click();await waitSearch(deniedPage);
  await deniedPage.locator('#search-open').click();await deniedPage.locator('#pick-origin').click();await deniedPage.locator('#map').click({position:{x:170,y:400}});await deniedPage.locator('#origin').waitFor();
