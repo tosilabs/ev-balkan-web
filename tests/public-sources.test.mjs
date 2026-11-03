@@ -48,3 +48,10 @@ test('OCM imports only approved contributor records with explicit open license a
  const parsed=parseStations({elements:result},settings({connector:'all'}),point(42,21))[0];assert.equal(parsed.id,'ocm/123');assert.match(parsed.source,/details\/123/);assert.equal(parsed.finesId,'');assert.equal(parsed.info.metadata.registryStatus,'Operational');assert.equal(parsed.allConnections[0].amps,300);
  assert.throws(()=>ocmLocations({records:[row],reference:{DataProviders:[{ID:1,IsOpenDataLicensed:false}]}},stamp));
 });
+
+test('Published imported OCM records retain the provider license, excluding NC and unlicensed providers',()=>{
+ const reference={DataProviders:[{ID:1,IsOpenDataLicensed:true,License:'CC BY 4.0'},{ID:37,Title:'Voltrelli',IsOpenDataLicensed:true,License:'CC0'},{ID:26,IsOpenDataLicensed:true,License:'CC BY-NC-SA 3.0'},{ID:99,IsOpenDataLicensed:false,License:'All rights reserved'}]};
+ const record={ID:123,DataProviderID:37,SubmissionStatusTypeID:100,UsageTypeID:1,StatusTypeID:50,AddressInfo:{Latitude:42,Longitude:21},Connections:[]};
+ const rows=ocmLocations({reference,records:[record,{...record,ID:124,DataProviderID:26},{...record,ID:125,DataProviderID:99},{...record,ID:126,SubmissionStatusTypeID:50}]},stamp);
+ assert.equal(rows.length,1);assert.equal(rows[0].provenance[0].license,'CC0');assert.equal(rows[0].provenance[0].name,'Voltrelli');
+});

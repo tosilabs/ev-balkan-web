@@ -50,15 +50,16 @@ export function zagrebLocations(data,fetchedAt){
 export function ocmLocations(data,fetchedAt){
  if(!Array.isArray(data.records)||!data.reference)throw Error('OCM export has no records/reference');
  const lookup=(list,id)=>data.reference[list]?.find(x=>x.ID===id)||{};
- const provider=lookup('DataProviders',1);
- if(provider.IsOpenDataLicensed!==true||!provider.License)throw Error('OCM contributor license is not confirmed');
+ const contributor=lookup('DataProviders',1);
+ if(contributor.IsOpenDataLicensed!==true||!contributor.License)throw Error('OCM contributor license is not confirmed');
+ const permitted=p=>p.IsOpenDataLicensed===true&&p.DataProviderStatusType?.IsProviderEnabled!==false&&typeof p.License==='string'&&!/non.?commercial|by-nc/i.test(p.License)&&/CC[ -]?0|CC[ -]?BY|creative commons attribution|creativecommons.org\/licenses\/by\//i.test(p.License);
  const known={33:'CCS2',32:'CCS1',25:'Type 2',103:'Type 2',1:'Type 1',2:'CHAdeMO',30:'Tesla',27:'Tesla'};
- return data.records.filter(l=>l.DataProviderID===1&&l.SubmissionStatusTypeID===200&&![100,150,200,210].includes(l.StatusTypeID)&&![2,3,6].includes(l.UsageTypeID)).map(l=>{
-  const a=l.AddressInfo||{},operator=lookup('Operators',l.OperatorID),usage=lookup('UsageTypes',l.UsageTypeID),country=lookup('Countries',a.CountryID);
+ return data.records.filter(l=>permitted(lookup('DataProviders',l.DataProviderID))&&[100,200].includes(l.SubmissionStatusTypeID)&&![100,150,200,210].includes(l.StatusTypeID)&&![2,3,6].includes(l.UsageTypeID)).map(l=>{
+  const provider=lookup('DataProviders',l.DataProviderID);const a=l.AddressInfo||{},operator=lookup('Operators',l.OperatorID),usage=lookup('UsageTypes',l.UsageTypeID),country=lookup('Countries',a.CountryID);
   if(a.Latitude<34||a.Latitude>48.5||a.Longitude<12||a.Longitude>30)return null;
   const connections=(l.Connections||[]).map(c=>({label:known[c.ConnectionTypeID]||lookup('ConnectionTypes',c.ConnectionTypeID).Title||'Lidhës i paspecifikuar',current:c.CurrentTypeID===30?'DC':[10,20].includes(c.CurrentTypeID)?'AC':'',power:Number.isFinite(c.PowerKW)&&c.PowerKW>0?c.PowerKW:0,count:Number.isInteger(c.Quantity)&&c.Quantity>0?c.Quantity:null,voltage:Number.isFinite(c.Voltage)?c.Voltage:null,amps:Number.isFinite(c.Amps)?c.Amps:null}));
   const tags={name:a.Title||'Stacion karikimi',operator:operator.Title?.startsWith('(')?'':operator.Title||'','operator:website':operator.WebsiteURL||'',website:a.RelatedURL||'','addr:street':[a.AddressLine1,a.AddressLine2].filter(Boolean).join(', '),'addr:city':a.Town||'','addr:postcode':a.Postcode||'','addr:country':country.ISOCode||'',description:l.GeneralComments||'',phone:a.ContactTelephone1||a.ContactTelephone2||operator.PhonePrimaryContact||'','contact:email':a.ContactEmail||operator.ContactEmail||'',capacity:l.NumberOfPoints?String(l.NumberOfPoints):'',charge:l.UsageCost||'','check_date':l.DateLastVerified||'',access:l.UsageTypeID===4?'members':'yes', 'authentication:membership_card':usage.IsMembershipRequired===true?'yes':''};
-  return record('ocm',l.ID,{lat:a.Latitude,lon:a.Longitude},tags,connections,fetchedAt,{sourceUpdatedAt:l.DateLastStatusUpdate||'',metadata:{accessNotes:a.AccessComments||'',usage:usage.Title||'',registryStatus:lookup('StatusTypes',l.StatusTypeID).Title||'',registryStatusAt:l.DateLastStatusUpdate||'',reference:l.OperatorsReference||'',numberOfPoints:l.NumberOfPoints||null},provenance:[{name:'Open Charge Map contributors',url:`https://openchargemap.org/site/poi/details/${l.ID}`,license:provider.License,recordId:String(l.ID),fetchedAt}]});
+  return record('ocm',l.ID,{lat:a.Latitude,lon:a.Longitude},tags,connections,fetchedAt,{sourceUpdatedAt:l.DateLastStatusUpdate||'',metadata:{accessNotes:a.AccessComments||'',usage:usage.Title||'',registryStatus:lookup('StatusTypes',l.StatusTypeID).Title||'',registryStatusAt:l.DateLastStatusUpdate||'',reference:l.OperatorsReference||'',numberOfPoints:l.NumberOfPoints||null},provenance:[{name:provider.Title||'Open Charge Map contributors',url:`https://openchargemap.org/site/poi/details/${l.ID}`,license:provider.License,recordId:String(l.ID),fetchedAt}]});
  }).filter(Boolean);
 }
 

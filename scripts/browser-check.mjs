@@ -33,6 +33,7 @@ async function searchPlace(page,mode){
 try{
  browser=await chromium.launch();
  const context=await browser.newContext(contextOptions);context.setDefaultTimeout(20000);page=await context.newPage();
+ await context.route('**/data/registry-index.json',r=>r.fulfill({status:404,body:''}));
  let forecastCalls=0;await context.route('https://api.open-meteo.com/v1/forecast**',route=>{forecastCalls++;return route.fulfill({json:weatherFixture(route.request().url())});});
  await context.route('https://api.rainviewer.com/public/weather-maps.json',route=>{const seconds=Math.floor(Date.now()/1000);return route.fulfill({json:{host:'https://tilecache.rainviewer.com',radar:{past:[{time:seconds-1200,path:'/v2/radar/b8bf13a9560e'},{time:seconds-600,path:'/v2/radar/5158c2341ca7'}]}}});});
  let radarTileRequests=0;
@@ -170,6 +171,7 @@ try{
  await livePage.locator('[data-close="sources-dialog"]').click();await livePage.locator('[data-close="help-dialog"]').click();
  await live.close();
  const operatorContext=await browser.newContext({...contextOptions,geolocation:{latitude:42.6977,longitude:23.3219}}),operatorPage=await operatorContext.newPage();
+ await operatorContext.route('**/data/registry-index.json',r=>r.fulfill({status:404,body:''}));
  await operatorContext.route('https://api.open-meteo.com/v1/forecast**',route=>route.fulfill({json:weatherFixture(route.request().url())}));
  const finesRecord={type:'fines',id:'123',lat:42.698,lon:23.322,finesId:'123',tags:{name:'Fines test location',operator:'Fines Charging'},connections:[{label:'CCS2',current:'DC',power:150,count:2}],provenance:[{name:'Fines Charging',url:'https://finescharging.com/public-api',license:'Public API'}]};
  await operatorPage.route('**/data/charging-balkans.json',route=>route.fulfill({json:{bounds:[34,12,48.5,30],fetchedAt:new Date().toISOString(),elements:[finesRecord,{...finesRecord,id:'124',finesId:'124',lat:42.699,tags:{name:'Fines offline',operator:'Fines Charging'}},{...finesRecord,id:'125',finesId:'125',lat:42.700,tags:{name:'Fines unconfirmed',operator:'Fines Charging'}}]}}));
@@ -181,7 +183,7 @@ try{
  await operatorPage.getByText(/1 nga 2 lidhës të lirë/).waitFor();await operatorPage.getByRole('button',{name:'Kontrollo përsëri',exact:true}).click();assert.equal(liveCalls,1,'Live API must respect two minute cache');
  await operatorPage.evaluate(()=>{const original=Date.now;Date.now=()=>original()+11*60000;document.dispatchEvent(new Event('visibilitychange'));});await operatorPage.getByText('Status i pakonfirmuar',{exact:true}).waitFor();
  await operatorContext.close();
- const ordered=await browser.newContext(contextOptions),orderedPage=await ordered.newPage();ordered.setDefaultTimeout(20000);
+ const ordered=await browser.newContext(contextOptions),orderedPage=await ordered.newPage();ordered.setDefaultTimeout(20000);await ordered.route('**/data/registry-index.json',r=>r.fulfill({status:404,body:''}));
  const routeLine=[[21.4254,41.9981],[21.426,41.999],[21.5,42.1]],routeSites=[{...station,id:10,lat:42.08,lon:21.48535,tags:{...station.tags,name:'Late on route'}},{...station,id:11,lat:42.0015,lon:21.4265,tags:{...station.tags,name:'First on route'}},{...station,id:12,lat:42.04,lon:21.48,tags:{...station.tags,name:'Far off route'}}];
  await ordered.route('**/data/charging-balkans.json',route=>route.fulfill({json:{bounds:[34,12,48.5,30],fetchedAt:new Date().toISOString(),elements:routeSites}}));
  await ordered.route('https://router.project-osrm.org/route/**',route=>route.fulfill({json:{code:'Ok',routes:[{distance:14000,duration:1200,geometry:{coordinates:routeLine}}]}}));
@@ -198,6 +200,7 @@ try{
  await orderedPage.locator('#results-close').click();await orderedPage.locator('#filters-open').click();await orderedPage.locator('#route-order').selectOption('offset');await orderedPage.getByRole('button',{name:'Gjej karikues'}).click();await orderedPage.locator('.place-option').click();await waitSearch(orderedPage);await orderedPage.locator('#list-open').click();assert.equal(await orderedPage.locator('.station-card').first().locator('h3').innerText(),'Late on route');
  await ordered.close();
  const denied=await browser.newContext({...contextOptions,permissions:[]}),deniedPage=await denied.newPage();let routeRequest='';
+ await denied.route('**/data/registry-index.json',r=>r.fulfill({status:404,body:''}));
  await denied.route(/https:\/\/(api\.open-meteo\.com|api\.opentopodata\.org)\//,route=>route.abort());
  await deniedPage.addInitScript(()=>{window.gpsCalls=0;Object.defineProperty(navigator,'geolocation',{configurable:true,value:{getCurrentPosition(ok,fail){window.gpsCalls++;fail({code:1});}}});});
  await deniedPage.route('**/data/charging-balkans.json',route=>route.fulfill({json:{bounds:[34,12,48.5,30],fetchedAt:new Date().toISOString(),elements:[station]}}));

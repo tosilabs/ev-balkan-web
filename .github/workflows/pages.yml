@@ -55,13 +55,21 @@ jobs:
             data/RS
             data/SI
             data/XK
+            data/AT
+            data/HU
+            data/IT
+            data/TR
           sparse-checkout-cone-mode: false
       - name: Prepare openly licensed OCM source
         run: node scripts/import-ocm.mjs
       - name: Refresh official operator links and visual identities
         run: python3 scripts/update-providers.py
+      - name: Import approved community reports
+        run: node scripts/import-community.mjs
       - name: Merge official registries and write source catalogue
         run: node scripts/merge-public-sources.mjs
+      - name: Build regional station files
+        run: node scripts/split-registry.mjs
       - name: Save downloaded registry
         uses: actions/cache/save@v4
         with:
@@ -74,6 +82,9 @@ jobs:
       - name: Check phone and desktop browser flows
         timeout-minutes: 3
         run: node scripts/browser-check.mjs
+      - name: Check battery plans, reports and offline phone flows
+        timeout-minutes: 3
+        run: node scripts/journey-browser-check.mjs
       - name: Verify current public weather APIs in browser
         timeout-minutes: 1
         run: node scripts/weather-smoke.mjs

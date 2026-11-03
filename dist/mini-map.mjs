@@ -1,5 +1,5 @@
-import {point} from './core.mjs?v=2.2';
-export function miniTiles(location,width,height,zoom=14){
+import {point} from './core.mjs?v=3.0';
+export function miniTiles(location,width,height,zoom=17){
  const p=point(location.lat,location.lon),n=2**zoom,lat=Math.max(-85.051128,Math.min(85.051128,p.lat)),sin=Math.sin(lat*Math.PI/180);
  const px=(p.lon+180)/360*n*256,py=(.5-Math.log((1+sin)/(1-sin))/(4*Math.PI))*n*256,tiles=[];
  for(let x=Math.floor((px-width/2)/256);x<=Math.floor((px+width/2)/256);x++)for(let y=Math.floor((py-height/2)/256);y<=Math.floor((py+height/2)/256);y++){
@@ -11,7 +11,7 @@ export function stationMap(station,onOpen,{root=null}={}){
  const element=document.createElement('div');element.className='station-map';
  const button=document.createElement('button');button.type='button';button.className='mini-map-open';button.setAttribute('aria-label','Hap në hartë: '+station.name);button.addEventListener('click',onOpen);
  const tiles=document.createElement('span');tiles.className='mini-map-tiles';tiles.setAttribute('aria-hidden','true');
- const pin=document.createElement('span');pin.className='mini-map-pin';pin.textContent='ϟ';pin.setAttribute('aria-hidden','true');
+ const pin=document.createElement('span');pin.className='mini-map-pin';const logo=document.createElement('img');logo.src='./icon.svg?v=3.0';logo.alt='';pin.append(logo);pin.setAttribute('aria-hidden','true');
  const label=document.createElement('span');label.className='mini-map-label';label.textContent='Vendndodhja në hartë';
  button.append(tiles,pin,label);const credit=document.createElement('a');credit.className='mini-map-credit';credit.href='https://www.openstreetmap.org/copyright';credit.target='_blank';credit.rel='noopener noreferrer';credit.textContent='© OpenStreetMap';element.append(button,credit);
  let active=false,width=0,generation=0;

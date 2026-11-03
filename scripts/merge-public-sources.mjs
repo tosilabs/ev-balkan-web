@@ -7,7 +7,7 @@ const fetchedAt=new Date().toISOString(),sources=[{id:'osm',name:'OpenStreetMap'
 const extra=[];
 async function input(name){try{return JSON.parse(await readFile(`.source-cache/${name}.json`,'utf8'));}catch{return {error:'Feed was not downloaded'};}}
 const configs=[
- {id:'ocm',name:'Open Charge Map · kontributet me licencë të hapur',country:'AL, BA, BG, GR, HR, ME, MK, RO, RS, SI, XK',url:'https://github.com/openchargemap/ocm-export',license:'CC BY 4.0 · vetëm DataProviderID 1',normalize:ocmLocations},
+ {id:'ocm',name:'Open Charge Map · kontribues dhe operatorë të hapur',country:'AL, BA, BG, GR, HR, ME, MK, RO, RS, SI, XK + zona AT/HU/IT/TR',url:'https://github.com/openchargemap/ocm-export',license:'CC BY / CC0 sipas provider-it · publikime 100/200',normalize:ocmLocations},
  {id:'myfah',name:'MYFAH · regjistri kombëtar i Greqisë',country:'GR',url:'https://electrokinisi.yme.gov.gr/public/HelpMyfah/PublicData/',license:'Të dhëna publike MYFAH / AFIR',normalize:myfahLocations},
  {id:'fines',name:'Fines Charging · API publike',country:'BG',url:'https://finescharging.com/public-api',license:'API publike Fines; atribuim burimi',normalize:async data=>finesLocations(data,(await input('fines-live')).data,fetchedAt)},
  {id:'zagreb',name:'Qyteti i Zagrebit · data.gov.hr',country:'HR · Zagreb',url:'https://data.gov.hr/ckan/en/dataset/geoportal-elektricne-punionice',license:'Otvorena dozvola (OD)',normalize:zagrebLocations}
@@ -29,11 +29,14 @@ for(const config of configs){
  const {normalize,...metadata}=config;sources.push({...metadata,status,count:bundle?.elements?.length||0,checkedAt:bundle?.fetchedAt||fetchedAt,error});
  console.log('SOURCE_IMPORT',config.id,status,bundle?.elements?.length||0,error);
 }
+let community={reports:[]};try{community=JSON.parse(await readFile('dist/data/community.json','utf8'));}catch{}
+for(const report of community.reports||[])if(report.kind==='missing'&&report.consent==='CC BY 4.0'&&report.lat>=34&&report.lat<=48.5&&report.lon>=12&&report.lon<=30)extra.push({type:'community',id:String(report.issue),lat:report.lat,lon:report.lon,tags:{amenity:'charging_station',name:report.name,operator:report.operator},connections:report.connector==='unknown'?[]:[{label:report.connector,current:report.connector==='Type 2'?'AC':'DC',power:report.power||0,count:null}],provenance:[{name:'Udhëmbarë · raport i verifikuar',url:report.url,license:'CC BY 4.0',fetchedAt:report.approvedAt}],metadata:{accessNotes:report.note,communityObservedAt:report.observedAt}});
+sources.push({id:'community',name:'Udhëmbarë · raportime të verifikuara',country:'Ballkani',url:'https://github.com/tosilabs/ev-balkan-web/issues',license:'CC BY 4.0',status:community.complete===false?'cached':'active',count:(community.reports||[]).filter(r=>r.kind==='missing').length,checkedAt:community.checkedAt||fetchedAt,note:'Vetëm raportet e miratuara; raporti historik nuk është status aktual.'});
 const merged=mergeLocations(base.elements,extra);
 const registry={...base,sourcesMerged:true,builtAt:fetchedAt,license:'Licenca sipas burimit të çdo regjistri',elements:merged.elements,sources,mergeReport:{additionalRecords:extra.length,matchedExisting:merged.merged,totalLocations:merged.elements.length}};
 await writeFile('dist/data/charging-balkans.json',JSON.stringify(registry));
 const discovery=[
- {id:'route-weather',name:'Moti · Open-Meteo Forecast',country:'Global',status:'on_demand',url:'https://open-meteo.com/en/docs',license:'CC BY 4.0; API falas për përdorim jokomercial',note:'Parashikim orar në deri 10 pika; sinjalet e motit krijohen nga pragjet e app-it, jo alarme zyrtare.'},
+ {id:'route-weather',name:'Moti · Open-Meteo Forecast',country:'Global',status:'on_demand',url:'https://open-meteo.com/en/docs',license:'CC BY 4.0; API falas për përdorim jokomercial',note:'Parashikim orar në deri 20 pika; sinjalet e motit krijohen nga pragjet e app-it, jo alarme zyrtare.'},
  {id:'weather-radar',name:'Radari · RainViewer',country:'Mbulim sipas rrjetit të radarëve',status:'on_demand',url:'https://www.rainviewer.com/api/weather-maps-api.html',license:'API falas për përdorim personal/edukativ; atribuim RainViewer',note:'Pamje të kaluara, jo parashikim. Shtresë opsionale, mbulim jo i garantuar; zoom burimi deri në 7.'},
  {id:'elevation-meteo',name:'Lartësia · Open-Meteo / Copernicus GLO-90',country:'Global',status:'on_demand',url:'https://open-meteo.com/en/docs/elevation-api',license:'CC BY 4.0; API falas vetëm për përdorim jokomercial',note:'Merret sipas itinerarit, maksimumi 100 pika për kërkesë. Nuk është matje e asfaltit ose e konsumit të veturës.'},
  {id:'elevation-topo',name:'Lartësia rezervë · Open Topo Data / SRTM90m',country:'Global',status:'on_demand',url:'https://www.opentopodata.org/datasets/srtm/',note:'Burim rezervë kur Open-Meteo nuk përgjigjet. Respektohet intervali mes kërkesave. Mungesat shënohen gri.'},

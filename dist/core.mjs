@@ -1,4 +1,4 @@
-import {locationInfo,socketCurrent,bestClass,webUrl} from './details.mjs?v=2.2';
+import {locationInfo,socketCurrent,bestClass,webUrl} from './details.mjs?v=3.0';
 export function point(lat,lon){
   if(lat==null||lon==null||lat===''||lon==='')throw Error('Koordinata të pavlefshme.');
   lat=Number(lat);lon=Number(lon);
@@ -34,14 +34,14 @@ export function bounds(line,padding){
 export function settings(raw={}){
   const radius=Number(raw.radius??10),minPower=Number(raw.minPower??0),connector=raw.connector??'both',speed=raw.speed??'all',routeSort=raw.routeSort??'progress';
   if(!Number.isFinite(radius)||radius<.3||radius>100||!Number.isFinite(minPower)||minPower<0||minPower>1000||!['all','both','CCS2','Type 2'].includes(connector)||!['all','slow','medium','fast','ultra','unknown'].includes(speed)||!['progress','near','offset'].includes(routeSort))throw Error('Rrezja duhet të jetë 0.3–100 km dhe fuqia 0–1000 kW.');
-  return {radius,minPower,connector,speed,routeSort,activeOnly:Boolean(raw.activeOnly),includeUnknown:Boolean(raw.includeUnknown)};
+  return {radius,minPower,connector,speed,routeSort,activeOnly:Boolean(raw.activeOnly),open24:Boolean(raw.open24),includeUnknown:Boolean(raw.includeUnknown)};
 }
 function power(value){
   if(!value)return 0;
   return Math.max(0,...String(value).split(';').map(part=>{const n=Number.parseFloat(part.replace(',','.'));return Number.isFinite(n)?n*(/\bW\b/i.test(part)&&!/kW/i.test(part)?1/1000:1):0;}));
 }
-export function validStationId(id){return /^(node|way|relation)\/\d+$/.test(id)||/^(myfah|fines|zagreb|ocm)\/[A-Za-z0-9_.:%*+!-]{1,220}$/.test(id);}
-const officialSources={ocm:{name:'Open Charge Map',url:'https://openchargemap.org/about/terms'},myfah:{name:'MYFAH · Ministria greke',url:'https://electrokinisi.yme.gov.gr/public/HelpMyfah/PublicData/'},fines:{name:'Fines Charging · API publike',url:'https://finescharging.com/public-api'},zagreb:{name:'Qyteti i Zagrebit · data.gov.hr',url:'https://data.gov.hr/ckan/en/dataset/geoportal-elektricne-punionice'}};
+export function validStationId(id){return /^(node|way|relation)\/\d+$/.test(id)||/^(myfah|fines|zagreb|ocm|community)\/[A-Za-z0-9_.:%*+!-]{1,220}$/.test(id);}
+const officialSources={community:{name:'Udhëmbarë · komuniteti',url:'https://github.com/tosilabs/ev-balkan-web/issues'},ocm:{name:'Open Charge Map',url:'https://openchargemap.org/about/terms'},myfah:{name:'MYFAH · Ministria greke',url:'https://electrokinisi.yme.gov.gr/public/HelpMyfah/PublicData/'},fines:{name:'Fines Charging · API publike',url:'https://finescharging.com/public-api'},zagreb:{name:'Qyteti i Zagrebit · data.gov.hr',url:'https://data.gov.hr/ckan/en/dataset/geoportal-elektricne-punionice'}};
 export function parseStations(data,options,center,line=null,origin=null){
   const out=[],seen=new Set(),cumulative=[0];
   if(line)for(let i=1;i<line.length;i++)cumulative.push(cumulative[i-1]+distance(line[i-1],line[i]));
@@ -51,6 +51,7 @@ export function parseStations(data,options,center,line=null,origin=null){
     if(raw.lat==null||raw.lon==null)continue;
     let p;try{p=point(raw.lat,raw.lon);}catch{continue;}
     const id=`${element.type}/${element.id}`;if(!validStationId(id)||seen.has(id))continue;seen.add(id);
+    if(options.open24&&tags.opening_hours!=='24/7')continue;
     if(tags.access==='private'||tags.access==='no')continue;
     if(tags['disused:amenity']||tags['abandoned:amenity']||tags.operational_status==='closed')continue;
     const labels={type2_combo:'CCS2',type2:'Type 2',chademo:'CHAdeMO',type1:'Type 1',type1_combo:'CCS1',tesla_supercharger:'Tesla',tesla_destination:'Tesla',schuko:'Schuko'};

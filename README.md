@@ -168,3 +168,17 @@ Kartat e listës kanë pamje reale të hartës së vendndodhjes, me pllaka stand
 ### Radari, sinjalet përgjatë rrugës dhe GPS (v2.2)
 Kornizat RainViewer përdorin edhe identifikues opakë me shkronja/numra; ruhet shtegu i API-së me validim, pa e interpretuar si timestamp. Pikat e parashikimit kërkohen çdo rreth 25 km deri në 20 pika, me një përmbledhje mbi hartë dhe listë sinjalesh me kilometrin/orën e kalimit. Mungesa e të dhënave tregohet veçmas nga mungesa e sinjaleve. Sinjalet burojnë nga parashikimi, nuk janë alarme zyrtare ose raporte policie.
 GPS ka shenjë të veçantë blu me rreth saktësie dhe kohën e matjes. Pas lejes së përdoruesit, pozicioni përditësohet ndërsa faqja është në plan të parë; ndalet kur ajo fshihet. Një pikë manuale nuk etiketohet kurrë si vendndodhja aktuale. GPS i vjetër ose i padisponueshëm ngjyroset gri dhe emërtohet si vendndodhja e fundit.
+
+### Udhëtimi me bateri, hartë e afërt dhe raportime (v3.0)
+
+Logoja vektoriale ndjek referencën e përdoruesit: shenjë blu me rrufe të bardhë dhe kontur të bardhë. Kërkimet hapen në nivel lagjeje; kartat përdorin zoom 17 dhe stacioni i përzgjedhur afrohet në zoom 16+, sipër panelit. “Pamja e plotë” rikthen shtrirjen e gjithë itinerarit/rrezes.
+
+“Udhëtimi” përfshin profil manual të veturës, kapacitet të përdorshëm, SoC, rezervë, konsum dhe kufij AC/DC. Planifikimi kontrollon matricë reale OSRM për deri në 16 kandidatë, rezervën në çdo segment, një kurbë orientuese karikimi dhe më pas rrugën reale me ndalesat. Motori i planifikimit dhe verifikimi përdorin të njëjtin server rrugor. Mungesa e një rruge ose e të dhënave nuk paraqitet si sukses. Temperaturat e parashikimit përdoren kur nuk është vendosur temperaturë manuale; terreni për energjinë kërkon masën dhe profilin e rrugës. Vlerësimet nuk janë telemetri myAudi ose kurba të matura të modelit.
+
+Devijimi i stacionit llogarit dy rrugë automobilistike nga e njëjta nisje deri te destinacioni, me dhe pa ndalesën; distanca anësore nuk ripërdoret si devijim. Kostoja bazohet vetëm në tarifa që mund të lexohen, pa i trajtuar çmimet e panjohura si zero ose pa mbledhur valuta të ndryshme.
+
+Indeksi `registry-index.json` ngarkon vetëm skedarët gjeografikë të nevojshëm nga `data/tiles/`. Regjistri i plotë dhe Overpass mbeten alternativa. OCM përfshin publikimet 100/200 dhe providerë me CC BY/CC0 të konfirmuar, pa licenca jo-komerciale dhe pa regjistra të hequr ose privatë.
+
+Raportet/vlerësimet personale ruhen lokalisht. Dërgimi publik hap një draft të rishikueshëm në GitHub; nuk kryen dërgim automatik. Kontribuesi konfirmon CC BY 4.0 dhe mund të bashkëngjitë foto në GitHub. Vetëm çështjet me etiketën `station-approved` importohen nga `scripts/import-community.mjs`; mirëmbajtësi krijon etiketën dhe miraton raportet. Raporti historik nuk shndërrohet në status të lirë në kohë reale. Stacionet e reja të miratuara janë burim i veçantë me ID të çështjes dhe atribuim.
+
+Udhëtimi dhe stacionet mund të ruhen në IndexedDB. Kopja offline shfaq datën dhe kufizimet; harta e re, statuset dhe llogaritja e një rruge të re kërkojnë rrjet. Nuk bëhet shkarkim masiv i pllakave OSM. Ndjekja e stacioneve me burim aktual kontrollon çdo 2 minuta vetëm ndërsa faqja është në plan të parë. Pagesat, rezervimet dhe komandat e nisjes së karikimit kërkojnë marrëveshje/API operatori dhe nuk simulohen si transaksione reale.

@@ -22,6 +22,6 @@ test('Physical proximity and route order can be selected separately on a returni
 });
 test('Preview uses the actual Web Mercator location and wraps dateline tiles correctly',()=>{
  for(const lon of [21.4254,179.999,-179.999]){
-  const tiles=miniTiles(point(41.9981,lon),380,116);assert.ok(tiles.length>=2&&tiles.length<=6);assert.ok(tiles.every(t=>t.x>=0&&t.x<2**14&&t.y>=0&&t.y<2**14));assert.ok(tiles.some(t=>t.left<=0&&t.left+256>=0&&t.top<=0&&t.top+256>=0));
+  const tiles=miniTiles(point(41.9981,lon),380,116);assert.ok(tiles.length>=2&&tiles.length<=6);assert.ok(tiles.every(t=>t.x>=0&&t.x<2**t.zoom&&t.y>=0&&t.y<2**t.zoom));assert.ok(tiles.some(t=>t.left<=0&&t.left+256>=0&&t.top<=0&&t.top+256>=0));
  }
 });

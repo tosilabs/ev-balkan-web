@@ -1,6 +1,6 @@
 // Import the publisher's Git export, never scrape a map or use an API without a key.
 import {readFile,readdir,writeFile} from 'node:fs/promises';
-const directory='.source-cache/ocm-export/data',records=[],countries=['AL','BA','BG','GR','HR','ME','MK','RO','RS','SI','XK'];
+const directory='.source-cache/ocm-export/data',records=[],countries=['AL','BA','BG','GR','HR','ME','MK','RO','RS','SI','XK','AT','HU','IT','TR'];
 try{
  const reference=JSON.parse(await readFile(directory+'/referencedata.json','utf8'));
  for(const country of countries){
