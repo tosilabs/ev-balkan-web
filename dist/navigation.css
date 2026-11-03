@@ -1,7 +1,7 @@
 .navigation[hidden]{display:none!important}
-.navigation{position:fixed;inset:0;z-index:1600;background:#e9eef1;color:#102c49}
+.navigation{position:fixed;inset:0;z-index:10000;background:#e9eef1;color:#102c49}
 .navigation-map{position:absolute;inset:0}
-.navigation button,.navigation a{min-height:52px;border:0;border-radius:16px;font:inherit;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;text-decoration:none}
+.navigation .nav-guidance button,.navigation .nav-tools button,.navigation .nav-bottom button,.navigation .nav-bottom-actions a{min-height:52px;border:0;border-radius:16px;font:inherit;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;text-decoration:none}
 .nav-guidance{position:absolute;top:max(12px,env(safe-area-inset-top));left:12px;right:12px;display:grid;grid-template-columns:54px minmax(0,1fr) 48px;align-items:center;gap:8px;padding:14px;background:#0758d6;color:#fff;border-radius:24px;box-shadow:0 6px 30px #173e6b30}
 .nav-turn-icon{font-size:43px;text-align:center}.nav-guidance strong{font-size:28px}.nav-guidance p{font-size:16px;margin:3px 0 0;line-height:1.3;overflow-wrap:anywhere}
 .navigation #nav-stop{font-size:28px;background:#ffffff24;color:#fff;min-width:48px}
@@ -24,3 +24,5 @@
 @media(max-width:759px){.navigation-ready .area-search{bottom:calc(212px + env(safe-area-inset-bottom))}}
 
 .navigation-position.preview{background:#73859a}
+
+.navigation-destination{width:30px;height:30px;border:3px solid #fff;border-radius:50%;background:#178565;color:#fff;text-align:center;font-size:20px;line-height:24px;box-shadow:0 2px 12px #123c6b40}

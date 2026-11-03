@@ -5,7 +5,7 @@ import {navigationUrl} from './core.mjs?v=3.4';
 export function createNavigation({context,getFix,closePanels}){
  const $=id=>document.getElementById(id);
  let active=false,controller=null,view=null,route=null,target=null,label='',progress=0,lastAt=0,follow=true,preview=false,needsRoute=false,arrived=false;
- let outside=0,outsideAt=0,arrivalCount=0,reroutedAt=0,sound=false,spoken='',wake=null,generation=0;
+ let outside=0,outsideAt=0,arrivalCount=0,reroutedAt=0,sound=false,spoken=new Set(),wake=null,generation=0;
  function say(text){if(!sound||document.hidden||!globalThis.speechSynthesis)return;try{speechSynthesis.cancel();const utterance=new SpeechSynthesisUtterance(text);utterance.lang='sq-AL';const voice=speechSynthesis.getVoices().find(v=>v.lang.toLowerCase().startsWith('sq'));if(voice)utterance.voice=voice;speechSynthesis.speak(utterance);}catch{}}
  function hint(message){$('nav-status').textContent=message;}
  function turn(text,icon='↑',distance='—'){$('nav-instruction').textContent=text;$('nav-turn-icon').textContent=icon;$('nav-turn-distance').textContent=distance;}
@@ -16,7 +16,7 @@ export function createNavigation({context,getFix,closePanels}){
   controller?.abort();const current=new AbortController();controller=current;const token=generation;
   needsRoute=true;preview=manual;turn('Duke llogaritur itinerarin…','↝');$('nav-remaining').textContent='—';$('nav-time').textContent='—';$('nav-retry').hidden=true;hint(manual?'Parapamje nga nisja manuale · GPS mungon':'Po marr udhëzimet e rrugës…');
   try{const result=await fetchNavigation([start,target],{signal:current.signal});if(!active||current.signal.aborted||token!==generation)return;
-   route=result;view?.setRoute(route);progress=0;lastAt=0;outside=0;outsideAt=0;arrivalCount=0;arrived=false;needsRoute=false;spoken='';
+   route=result;view?.setRoute(route);progress=0;lastAt=0;outside=0;outsideAt=0;arrivalCount=0;arrived=false;needsRoute=false;spoken=new Set();
    if(manual){turn(route.turns[0].text,route.turns[0].icon,maneuverDistance(route.turns[0].atKm));$('nav-remaining').textContent=(route.distance/1000).toFixed(1)+' km';$('nav-time').textContent=Math.ceil(route.duration/60)+' min';hint('Parapamje · lejo GPS-in për udhëzim gjatë lëvizjes');$('nav-retry').hidden=false;view?.position({point:start,preview:true},true);}
    else position(context().location);
   }catch(error){if(!active||current.signal.aborted||token!==generation)return;needsRoute=true;turn('Navigimi nuk u llogarit','!');hint(error.message||'Kontrollo internetin dhe provo përsëri.');$('nav-retry').hidden=false;}
@@ -35,13 +35,13 @@ export function createNavigation({context,getFix,closePanels}){
   $('nav-remaining').textContent=state.remainingKm<10?state.remainingKm.toFixed(1)+' km':Math.round(state.remainingKm)+' km';$('nav-time').textContent=Math.max(1,Math.ceil(state.remainingSeconds/60))+' min';
   const eta=new Date(Date.now()+state.remainingSeconds*1000).toLocaleTimeString('sq-AL',{hour:'2-digit',minute:'2-digit'});hint('Mbërritje rreth '+eta+' · pa trafik aktual');
   const milestone=state.toTurn<.04?'now':state.toTurn<.15?'near':state.toTurn<.5?'far':null;
-  if(milestone){const key=route.turns.indexOf(state.turn)+':'+milestone;if(key!==spoken){spoken=key;say((milestone==='now'?'Tani. ':'Pas '+maneuverDistance(state.toTurn)+'. ')+state.turn.text);}}
+  if(milestone){const key=route.turns.indexOf(state.turn)+':'+milestone;if(!spoken.has(key)){spoken.add(key);say((milestone==='now'?'Tani. ':'Pas '+maneuverDistance(state.toTurn)+'. ')+state.turn.text);}}
   arrivalCount=state.arrived&&fix.accuracy<=50?arrivalCount+1:0;
   if(arrivalCount>=2){arrived=true;turn('Mbërrite në destinacion','⚑','0 m');$('nav-remaining').textContent='0 km';$('nav-time').textContent='Mbërrite';hint(label);say('Mbërrite në destinacion.');}
  }
  async function start(destination,name='Destinacioni'){
   if(active)stop();closePanels();for(const dialog of document.querySelectorAll('dialog[open]'))dialog.close();
-  active=true;generation++;const token=generation;target=destination;label=name;progress=0;lastAt=0;route=null;follow=true;preview=false;needsRoute=true;arrived=false;sound=false;spoken='';outside=0;outsideAt=0;reroutedAt=0;
+  active=true;generation++;const token=generation;target=destination;label=name;progress=0;lastAt=0;route=null;follow=true;preview=false;needsRoute=true;arrived=false;sound=false;spoken=new Set();outside=0;outsideAt=0;reroutedAt=0;
   $('navigation').hidden=false;document.body.classList.add('navigation-mode');$('nav-destination').textContent=label;$('nav-voice').disabled=!globalThis.speechSynthesis;$('nav-voice').setAttribute('aria-pressed','false');$('nav-voice').textContent='♪ Zëri';$('nav-follow').setAttribute('aria-pressed','true');$('nav-3d').disabled=false;$('nav-3d').textContent='3D';$('nav-3d').setAttribute('aria-pressed','true');$('nav-retry').hidden=true;
   $('nav-external').href=navigationUrl({point:target},'waze');$('nav-remaining').textContent='—';$('nav-time').textContent='—';turn('Po marr vendndodhjen…','◎');hint('Lejo GPS-in për të nisur navigimin.');
   view=createNavigationMap($('navigation-map'),{onDrag:()=>{follow=false;$('nav-follow').setAttribute('aria-pressed','false');},changed:mode=>{if(!active)return;$('nav-map-note').textContent=mode==='3d'?'OpenFreeMap · 3D sipas të dhënave':mode==='2d'?'Pamje 2D · 3D nuk u ngarkua':'Harta nuk u ngarkua. Udhëzimet mbeten në ekran.';if(mode!=='3d'){$('nav-3d').disabled=true;$('nav-3d').textContent='2D';$('nav-3d').setAttribute('aria-pressed','false');}}});

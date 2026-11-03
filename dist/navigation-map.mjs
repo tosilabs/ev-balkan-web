@@ -1,14 +1,15 @@
 export function createNavigationMap(container,{changed=()=>{},onDrag=()=>{}}={}){
- let map=null,leaflet=null,routeLayer=null,marker=null,timer=null,route=null,last=null,tilted=true,closed=false;
+ let map=null,leaflet=null,routeLayer=null,marker=null,endMarker=null,timer=null,route=null,last=null,tilted=true,closed=false;
  const feature=coordinates=>({type:'Feature',properties:{},geometry:{type:'LineString',coordinates}});
  function draw(){if(!route)return;
-  if(leaflet){if(routeLayer)leaflet.removeLayer(routeLayer);routeLayer=L.polyline(route.line.map(p=>[p.lat,p.lon]),{color:'#0758d6',weight:7,opacity:.95}).addTo(leaflet);return;}
+  if(leaflet){if(routeLayer)leaflet.removeLayer(routeLayer);if(endMarker)endMarker.remove();const end=route.line.at(-1);endMarker=L.circleMarker([end.lat,end.lon],{radius:8,color:'#fff',weight:3,fillColor:'#178565',fillOpacity:1}).addTo(leaflet);routeLayer=L.polyline(route.line.map(p=>[p.lat,p.lon]),{color:'#0758d6',weight:7,opacity:.95}).addTo(leaflet);return;}
   if(!map?.isStyleLoaded())return;
   const data=feature(route.line.map(p=>[p.lon,p.lat]));
+  if(endMarker)endMarker.remove();const end=route.line.at(-1),flag=document.createElement('div');flag.className='navigation-destination';flag.textContent='⚑';flag.setAttribute('aria-label','Destinacioni');endMarker=new maplibregl.Marker({element:flag}).setLngLat([end.lon,end.lat]).addTo(map);
   if(map.getSource('nav-route'))map.getSource('nav-route').setData(data);
   else{map.addSource('nav-route',{type:'geojson',data});map.addLayer({id:'nav-route-halo',type:'line',source:'nav-route',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#fff','line-width':12}});map.addLayer({id:'nav-route-line',type:'line',source:'nav-route',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#0758d6','line-width':7}});}
  }
- function fallback(){if(closed||leaflet)return;clearTimeout(timer);marker?.remove?.();marker=null;map?.remove();map=null;container.replaceChildren();
+ function fallback(){if(closed||leaflet)return;clearTimeout(timer);marker?.remove?.();marker=null;endMarker?.remove?.();endMarker=null;map?.remove();map=null;container.replaceChildren();
   if(!globalThis.L){changed('none');return;}
   leaflet=L.map(container,{zoomControl:false}).setView([last?.point.lat??42,last?.point.lon??21.43],16);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(leaflet);
@@ -24,7 +25,7 @@ export function createNavigationMap(container,{changed=()=>{},onDrag=()=>{}}={})
  }
  try{if(!globalThis.maplibregl)throw Error('WebGL');
   map=new maplibregl.Map({container,style:'https://tiles.openfreemap.org/styles/positron',center:[21.43,42],zoom:15,pitch:55,bearing:0,attributionControl:true});
-  map.on('dragstart',onDrag);map.on('rotatestart',event=>{if(event.originalEvent)onDrag();});
+  map.on('dragstart',onDrag);map.on('zoomstart',event=>{if(event.originalEvent)onDrag();});map.on('rotatestart',event=>{if(event.originalEvent)onDrag();});
   map.once('load',()=>{if(closed)return;clearTimeout(timer);
    const building=map.getStyle().layers.find(layer=>layer['source-layer']==='building'&&layer.type==='fill');
    if(building)try{map.addLayer({id:'nav-buildings',source:building.source,'source-layer':'building',type:'fill-extrusion',minzoom:14,paint:{'fill-extrusion-color':'#becbd9','fill-extrusion-height':['to-number',['get','render_height'],0],'fill-extrusion-base':['to-number',['get','render_min_height'],0],'fill-extrusion-opacity':.7}});}catch{/* Tilted map remains usable without building heights. */}
@@ -34,6 +35,6 @@ export function createNavigationMap(container,{changed=()=>{},onDrag=()=>{}}={})
  }catch{fallback();}
  return {setRoute(value){route=value;draw();},position,
   toggle(){if(!map)return false;tilted=!tilted;map.easeTo({pitch:tilted?55:0,bearing:tilted?map.getBearing():0,duration:300});return tilted;},
-  remove(){closed=true;clearTimeout(timer);marker?.remove?.();map?.remove();leaflet?.remove();container.replaceChildren();}
+  remove(){closed=true;clearTimeout(timer);marker?.remove?.();endMarker?.remove?.();map?.remove();leaflet?.remove();container.replaceChildren();}
  };
 }
