@@ -134,7 +134,7 @@ try{
  await page.reload({waitUntil:'networkidle'});await waitSearch(page);
  assert.equal(await page.locator('#connector').inputValue(),'Type 2');assert.equal(await page.locator('#power').inputValue(),'150');
  assert.equal(await page.locator('#saved-count').textContent(),'1');
- await page.getByRole('button',{name:'Të ruajturat',exact:true}).click();
+ await page.locator('#more-open').click();await page.getByRole('button',{name:'Të ruajturat',exact:true}).click();
  await page.getByRole('heading',{name:'Karikues prove'}).waitFor();
  await page.locator('#results-close').click();
  const lots=Array.from({length:230},(_,i)=>({...station,id:123456789+i,lat:41.999+i*.00001}));

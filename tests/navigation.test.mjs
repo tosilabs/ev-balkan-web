@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {navigationRoute,navigationProgress,freshNavigationFix,fetchNavigation,turnInstruction} from '../dist/navigation-core.mjs';
+import {navigationRoute,navigationProgress,freshNavigationFix,fetchNavigation,turnInstruction,navigationBearing,navigationCamera} from '../dist/navigation-core.mjs';
 const a=[21,42],b=[21.01,42],c=[21.01,42.01];
 function data(){return {code:'Ok',waypoints:[{distance:0},{distance:0}],routes:[{distance:2000,duration:180,legs:[{steps:[
  {name:'Rruga A',maneuver:{type:'depart'},geometry:{coordinates:[a,b]}},
@@ -28,4 +28,13 @@ test('Old, inaccurate or unspecified GPS cannot enable live navigation',()=>{
 test('Navigation requests actual maneuver steps and stops after cancellation',async()=>{
  const requests=[];const result=await fetchNavigation([{lat:42,lon:21},{lat:42.01,lon:21.01}],{request:async url=>{requests.push(url);return data();}});assert.ok(result.turns.length);assert.match(requests[0],/steps=true/);assert.match(requests[0],/geometries=geojson/);
  const controller=new AbortController();controller.abort();await assert.rejects(fetchNavigation([{lat:42,lon:21},{lat:42.01,lon:21.01}],{signal:controller.signal,request:async()=>{throw controller.signal.reason;}}));
+});
+
+test('Camera crosses north by the short arc and leaves safe room on short screens',()=>{
+ assert.equal(navigationBearing(359,1),361);assert.equal(navigationBearing(1,359),-1);assert.equal(navigationBearing(721,359),719);
+ const city=navigationCamera({speed:8,toTurn:.1}),highway=navigationCamera({speed:30,toTurn:2});assert.ok(city.zoom>highway.zoom);
+ for(const height of [0,40,250,844]){const view=navigationCamera({height,width:390});assert.ok(view.padding.top+view.padding.bottom<=height);}
+});
+test('Route matching exposes a nearby road point for display without hiding actual GPS deviation',()=>{
+ const route=navigationRoute(data()),state=navigationProgress(route,{point:{lat:42.0001,lon:21.005}},0);assert.equal(state.nearest.lat,42);assert.ok(state.offset>.01);assert.ok(state.offset<.02);
 });

@@ -14,7 +14,7 @@ export function turnInstruction(maneuver,name=''){
  else if(type==='fork'){text=direction?'Mbaju '+direction:'Vazhdo në degëzim';icon=direction==='majtas'?'↖':'↗';}
  else if(type==='off ramp'){text='Merr daljen'+(direction?' '+direction:'');icon=direction==='majtas'?'↖':'↗';}
  else if(direction){text=(modifier.includes('slight')?'Mbaju ':modifier.includes('sharp')?'Kthehu fort ':'Kthehu ')+direction;icon=direction==='majtas'?'↰':'↱';}
- return {text:road&&type!=='arrive'?text+' · '+road:text,icon};
+ return {text:road&&type!=='arrive'?text+' · '+road:text,icon,instruction:text,road:type==='arrive'?'':road};
 }
 export function navigationRoute(data){
  const route=data?.routes?.[0];
@@ -58,7 +58,15 @@ export function navigationProgress(route,fix,previous=0){
  const fraction=Math.max(0,1-progress/route.km);
  return {progress,offset:best.offsetKm,turn,toTurn:Math.max(0,turn.atKm-progress),remainingKm:route.distance/1000*fraction,remainingSeconds:route.duration*fraction,
   arrived:route.km-progress<.08&&distance(fix.point,route.line.at(-1))<.1,
+  nearest:best.nearest,
   bearing:Number.isFinite(fix.heading)&&fix.speed>=2?fix.heading:course(route.line[best.segment],route.line[Math.min(best.segment+1,route.line.length-1)])};
 }
 export function freshNavigationFix(fix,now=Date.now()){return Boolean(fix?.point&&Number.isFinite(fix.at)&&now-fix.at>=-2000&&now-fix.at<=15000&&Number.isFinite(fix.accuracy)&&fix.accuracy<=80);}
 export const maneuverDistance=km=>km<1?`${Math.max(0,Math.round(km*1000/10)*10)} m`:`${km.toFixed(1)} km`;
+
+// Use the short rotation through north; map headings may be unwrapped beyond 360°.
+export function navigationBearing(previous,next){if(!Number.isFinite(previous))return next;return previous+((next-previous+540)%360+360)%360-180;}
+export function navigationCamera({speed=0,toTurn=Infinity,bearing=0,previousBearing,height=800,width=400}={}){
+ const kmh=Math.max(0,Number.isFinite(speed)?speed*3.6:0),near=Math.max(0,Math.min(1,(.3-toTurn)/.3));
+ return {bearing:navigationBearing(previousBearing,bearing),zoom:Math.max(15.8,17.25-Math.min(1.45,kmh/85)+near*.55),padding:{top:Math.min(130,height*.22),bottom:Math.min(70,height*.12),left:0,right:0},landscape:width>height};
+}

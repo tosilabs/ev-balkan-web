@@ -4,7 +4,7 @@
 
 Aplikacion në shqip për udhëtime elektrike: karikues pranë teje, përgjatë itinerarit ose pranë një vendi, kohë udhëtimi, profil lartësie, mot dhe radar reshjesh. Punon në shfletuesin e telefonit dhe mund të instalohet si PWA. Vendndodhja mund të caktohet manualisht kur GPS mungon.
 
-**Versioni:** 3.6.0 · [Hape Udhëmbarë](https://tosilabs.github.io/ev-balkan-web/). Ndërfaqe e thjeshtuar me kërkim sipër, dy mjete të grupuara dhe tre veprime poshtë. [Revizioni i kodit dhe UX](docs/REVIZIONI_3_6.md) përshkruan ndryshimet dhe kufijtë e verifikimit.
+**Versioni:** 3.6.0 · [Hape Udhëmbarë](https://tosilabs.github.io/ev-balkan-web/). Ndërfaqe e thjeshtuar me kërkim sipër, dy mjete të grupuara dhe tre veprime poshtë. Navigimi ka lëvizje të ndërmjetme të pozicionit, orientim të qëndrueshëm, zmadhim sipas shpejtësisë/kthesës dhe përmbledhje të mbërritjes. [Revizioni i kodit dhe UX](docs/REVIZIONI_3_6.md) përshkruan ndryshimet dhe kufijtë e verifikimit.
 
 Lidhjet me myAudi, Waze dhe OsmAnd, burimet e karikuesve, statusi kur ofrohet, fotografitë/lidhjet zyrtare, historiku, moti dhe profili i terrenit ruhen si funksione. Çmimet dhe statusi shfaqen vetëm kur burimi i ofron; sinjalet e motit janë orientuese, jo alarme zyrtare.
 
