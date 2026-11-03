@@ -27,7 +27,7 @@ public final class DeviceLocation {
             @Override public void onLocationChanged(Location location) {
                 if(done[0]) return;
                 if(SystemClock.elapsedRealtimeNanos()-location.getElapsedRealtimeNanos()>30_000_000_000L) return;
-                if(!location.hasAccuracy()||location.getAccuracy()>200)return;
+                if(!location.hasAccuracy()||location.getAccuracy()>200){cancel.run();failure.accept("Lejo vendndodhjen e saktë në telefon, ose kërko sipas qytetit.");return;}
                 cancel.run(); success.accept(new Geo.Point(location.getLatitude(),location.getLongitude()));
             }
             @Override public void onProviderDisabled(String provider) {}
