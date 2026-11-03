@@ -85,7 +85,7 @@ try{
  await page.waitForFunction(()=>document.querySelector('.location-photo img')?.naturalWidth>0);
  assert.match(await page.locator('.location-photo').innerText(),/Test Photographer.*CC BY 4.0/);
  await page.getByRole('button',{name:'Ruaj: Karikues prove',exact:true}).click();
- assert.equal(await page.locator('#saved-count').innerText(),'1');
+ assert.equal(await page.locator('#saved-count').textContent(),'1');
  await page.getByRole('button',{name:'Dërgo te Audi'}).click();
  assert.equal(await page.locator('#share-native').isDisabled(),true);
  assert.match(await page.locator('#share-maps').getAttribute('href'),/query=41.999%2C21.426/);
@@ -133,7 +133,7 @@ try{
  await page.locator('#list-open').click();await page.locator('.empty-note').waitFor();
  await page.reload({waitUntil:'networkidle'});await waitSearch(page);
  assert.equal(await page.locator('#connector').inputValue(),'Type 2');assert.equal(await page.locator('#power').inputValue(),'150');
- assert.equal(await page.locator('#saved-count').innerText(),'1');
+ assert.equal(await page.locator('#saved-count').textContent(),'1');
  await page.getByRole('button',{name:'Të ruajturat',exact:true}).click();
  await page.getByRole('heading',{name:'Karikues prove'}).waitFor();
  await page.locator('#results-close').click();
@@ -237,6 +237,6 @@ try{
  console.log('PASS: fullscreen phone map, 10 km default, all 230 small numbered markers, categories, operator links, attributed Commons photo, external vlerësime links, hidden fields/list, three modes, filters, saved stations, sharing fallback and real downloaded chargers near Skopje with public search services blocked');
  console.log('Live occupancy, GPS hardware and actual myAudi delivery are not tested.');
 }catch(error){
- if(page){console.error('TERRAIN STATUS:',await page.locator('#terrain-status').innerText().catch(()=>''));console.error('PAGE STATUS:',await page.locator('#status').innerText().catch(()=>''));console.error('BROWSER ERRORS:',errors);await mkdir('browser-results',{recursive:true});await page.screenshot({path:'browser-results/failure.png'}).catch(()=>{});}
+ if(page){console.error('TERRAIN STATUS:',await page.locator('#terrain-status').innerText().catch(()=>''));console.error('PAGE STATUS:',await page.locator('#status').innerText().catch(()=>''));console.error('BROWSER ERRORS:',errors);await mkdir('browser-results',{recursive:true});const shot=await page.screenshot({path:'browser-results/failure.png'}).catch(()=>null);if(shot)console.log('VISUAL_REVIEW_FAILURE:'+shot.toString('base64'));}
  throw error;
 }finally{await browser?.close();await new Promise(resolve=>server.close(resolve));}

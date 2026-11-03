@@ -44,5 +44,5 @@ try{
  await page.setViewportSize({width:1440,height:1000});await page.screenshot({path:'browser-results/review-list-desktop.png'});console.log('PASS REVIEW: 320 px navigation, labelled controls, 16 px inputs, grouped filters, keyboard Escape and restored focus');
  assert.deepEqual(errors,[]);console.log('PASS V3: focused close station view, vehicle profile, road-matrix battery plan, actual via-route detour, personal and public report drafts, offline journey and natural Albanian filters');
  await context.close();
-}catch(error){if(page){console.error('V3 STATUS',await page.locator('#plan-status').textContent().catch(()=>''));console.error('V3 ERRORS',errors);await mkdir('browser-results',{recursive:true});await page.screenshot({path:'browser-results/v3-failure.png'}).catch(()=>{});}throw error;}
+}catch(error){if(page){console.error('V3 STATUS',await page.locator('#plan-status').textContent().catch(()=>''));console.error('V3 ERRORS',errors);await mkdir('browser-results',{recursive:true});const shot=await page.screenshot({path:'browser-results/v3-failure.png'}).catch(()=>null);if(shot)console.log('VISUAL_REVIEW_FAILURE:'+shot.toString('base64'));}throw error;}
 finally{await browser?.close();await new Promise(r=>server.close(r));}
