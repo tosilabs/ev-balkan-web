@@ -49,7 +49,7 @@ export function createDriving({context,closePanels,search,setupRoute,focusLocati
   try{localStorage.setItem('udhembare-driving','false');}catch{}$('more-open').focus({preventScroll:true});}
  function enter({restore=false}={}){closePanels();for(const dialog of document.querySelectorAll('dialog[open]'))dialog.close();enabled=true;kind=context().search?.line?'route':'near';follow=true;document.body.classList.add('driving-mode');$('driving').hidden=false;$('drive-open').setAttribute('aria-pressed','true');
   try{localStorage.setItem('udhembare-driving','true');}catch{}keepAwake();refresh();focusLocation();$('drive-exit').focus({preventScroll:true});
-  if(!restore&&!context().busy&&!context().search?.line)search('near');
+  if(!restore&&!context().busy&&!context().search?.line&&(!context().search||origin()?.gps))search('near');
  }
  $('drive-open').addEventListener('click',()=>enter());$('drive-exit').addEventListener('click',exit);
  for(const id of ['near','fast'])$('drive-'+id).addEventListener('click',()=>{kind=id;selected=null;search(id);refresh();});
@@ -65,7 +65,7 @@ export function createDriving({context,closePanels,search,setupRoute,focusLocati
  // Weather warnings retain one compact, readable map control in this mode.
  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&enabled&&!document.querySelector('dialog[open]'))exit();});
  try{if(localStorage.getItem('udhembare-driving')==='true')enter({restore:true});}catch{}
- return {refresh,get active(){return enabled;},exit,
+ return {refresh,get active(){return enabled;},get stationId(){return enabled?selected:null;},exit,
   position(){if(!enabled)return;refresh();if(follow)focusLocation();},
   dragged(){if(enabled){follow=false;$('drive-follow').setAttribute('aria-pressed','false');}},
   pick(station){if(!enabled)return false;const item=choices.find(c=>c.station.id===station.id);if(item)select(item);else notice('Ky stacion nuk përputhet me filtrin e vozitjes. Provo “Pranë meje”.');return true;}

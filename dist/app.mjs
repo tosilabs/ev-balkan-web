@@ -266,6 +266,7 @@ document.addEventListener('visibilitychange',()=>{
 setInterval(()=>locationLayer?.refresh(),30000);
 
 function setTerrainOpen(open){
+ if(open&&driving?.active)return;
  if(open&&!routeState)return;
  if(open){journeyTools?.close();setWeatherOpen(false);showResults(false);}
  $('terrain-panel').hidden=!open;document.body.classList.toggle('terrain-open-state',open);$('terrain-open').setAttribute('aria-expanded',String(open));
@@ -351,6 +352,7 @@ function drawResults(line,center,preserve=false){
     const speed=station.speed||bestClass(station.connections||[]),label=`${i+1}. ${station.name} · ${speed.label} · ${currentOperating(station).label}`;
     const icon=L.divIcon({className:'numbered-marker',html:`<span class="map-marker speed-${speed.key} operating-${currentOperating(station).key}">${i+1}</span>`,iconSize:[34,34],iconAnchor:[17,17]});
     const marker=L.marker([p.lat,p.lon],{icon,title:label,alt:label,stationId:station.id}).addTo(markers);
+    marker.getElement()?.classList.toggle('marker-selected',station.id===driving?.stationId);
     marker.on('click',()=>{if(!picking&&!active)openStation(station);});
   });
   if(center&&!line)radiusLayer=L.circle([center.lat,center.lon],{radius:viewingRadius*1000,color:'#5a8152',weight:1,dashArray:'5 6',fillColor:'#b0d471',fillOpacity:.035,interactive:false}).addTo(map);
