@@ -26,7 +26,7 @@ export function parseTraffic(payload,area,now=Date.now()){
  if(!data||!Array.isArray(data.alerts)||!Array.isArray(data.jams))throw Error('Ofruesi nuk ktheu formatin e pritshëm të raportimeve.');
  const alerts=[],jams=[],seen=new Set();
  for(const raw of data.alerts.slice(0,2000)){
-  if(!raw||!TRAFFIC_TYPES[raw.type]||typeof raw.alert_id!=='string'||seen.has(raw.alert_id))continue;
+  if(!raw||typeof raw.type!=='string'||!Object.hasOwn(TRAFFIC_TYPES,raw.type)||typeof raw.alert_id!=='string'||seen.has(raw.alert_id))continue;
   let p;try{p=point(raw.latitude,raw.longitude);}catch{continue;}
   const at=Date.parse(raw.publish_datetime_utc),age=now-at,maxAge=raw.type==='POLICE'?3600000:7200000;
   if(!Number.isFinite(at)||age< -300000||age>maxAge||!inArea(p,area))continue;

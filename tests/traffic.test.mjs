@@ -5,7 +5,7 @@ import {createKeyVault} from '../dist/key-vault.mjs';
 const now=Date.now(),center={lat:42,lon:21},area=trafficArea({center});
 const alert=(id,type='POLICE',at=now)=>({alert_id:id,type,latitude:42,longitude:21.001,street:'Rruga A',publish_datetime_utc:new Date(at).toISOString()});
 test('Traffic separates police from cameras, rejects old/future/malformed reports and deduplicates',()=>{
- const payload={data:{alerts:[alert('one'),alert('one'),alert('old','POLICE',now-7200000),alert('future','HAZARD',now+600000),alert('camera','SPEED_CAMERA'),{...alert('null'),latitude:null},alert('accident','ACCIDENT')],jams:[]}};
+ const payload={data:{alerts:[alert('one'),alert('one'),alert('old','POLICE',now-7200000),alert('future','HAZARD',now+600000),alert('camera','SPEED_CAMERA'),alert('prototype','constructor'),alert('prototype2','__proto__'),{...alert('null'),latitude:null},alert('accident','ACCIDENT')],jams:[]}};
  const result=parseTraffic(payload,area,now);assert.equal(result.alerts.length,2);assert.equal(result.alerts[0].label,'Polici e raportuar');assert.ok(!result.alerts.some(a=>a.label.includes('radar')));assert.equal(visibleTraffic(result,now+600001),null);
  assert.throws(()=>parseTraffic({status:'ERROR'},area,now),/formatin/);
 });
