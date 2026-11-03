@@ -68,5 +68,5 @@ export const maneuverDistance=km=>km<1?`${Math.max(0,Math.round(km*1000/10)*10)}
 export function navigationBearing(previous,next){if(!Number.isFinite(previous))return next;return previous+((next-previous+540)%360+360)%360-180;}
 export function navigationCamera({speed=0,toTurn=Infinity,bearing=0,previousBearing,height=800,width=400}={}){
  const kmh=Math.max(0,Number.isFinite(speed)?speed*3.6:0),near=Math.max(0,Math.min(1,(.3-toTurn)/.3));
- return {bearing:navigationBearing(previousBearing,bearing),zoom:Math.max(15.8,17.25-Math.min(1.45,kmh/85)+near*.55),padding:{top:Math.min(130,height*.22),bottom:Math.min(70,height*.12),left:0,right:0},landscape:width>height};
+ return {bearing:navigationBearing(previousBearing,bearing),zoom:Math.max(15.8,17.25-Math.min(1.45,kmh/85)+near*.55),padding:{top:Math.min(220,height*.3),bottom:Math.min(60,height*.08),left:0,right:0},landscape:width>height};
 }

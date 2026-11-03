@@ -26,19 +26,20 @@ export function createNavigation({context,getFix,closePanels}){
   }catch(error){if(!active||current.signal.aborted||token!==generation)return;needsRoute=true;turn('Navigimi nuk u llogarit','!');hint(error.message||'Kontrollo internetin dhe provo përsëri.');$('nav-retry').hidden=false;}
   finally{if(controller===current)controller=null;}
  }
+ function maybeReroute(fix){if(active&&!needsRoute&&!preview&&!arrived&&!controller&&outside>=3&&Date.now()-outsideAt>=5000&&Date.now()-reroutedAt>=30000&&!document.hidden&&freshNavigationFix(fix)){reroutedAt=Date.now();calculate(fix.point);}}
  function position(fix){if(!active||!route||needsRoute||arrived||preview)return;
   if(!freshNavigationFix(fix)){resetMetrics();globalThis.speechSynthesis?.cancel();$('nav-remaining').textContent='—';$('nav-time').textContent='—';turn('Po pres sinjal të saktë GPS','◎');hint('Udhëzimet janë pezull derisa të merret pozicion aktual.');return;}
   if(fix.at<=lastAt)return;lastAt=fix.at;
   const state=navigationProgress(route,fix,progress);$('nav-speed').textContent=Number.isFinite(fix.speed)?String(Math.round(Math.max(0,fix.speed)*3.6)):'—';
   if(state.offset>Math.max(.08,fix.accuracy/500)){view?.position(fix,follow,state.bearing,state.toTurn);$('nav-eta').textContent='—';$('nav-next').hidden=true;globalThis.speechSynthesis?.cancel();$('nav-remaining').textContent='—';$('nav-time').textContent='—';$('nav-retry').hidden=false;outside++;outsideAt||=Date.now();turn('Je jashtë itinerarit','↝');hint('Duke kontrolluar nëse nevojitet rillogaritje…');
-   if(outside>=3&&Date.now()-outsideAt>=5000&&Date.now()-reroutedAt>=30000&&!document.hidden){reroutedAt=Date.now();calculate(fix.point);}
+   maybeReroute(fix);
    return;
   }
   view?.position({...fix,point:fix.accuracy<=35&&state.offset<=.035?state.nearest:fix.point},follow,state.bearing,state.toTurn);
   $('nav-retry').hidden=true;outside=0;outsideAt=0;progress=Math.max(progress,state.progress);
   turn(state.turn.text,state.turn.icon,maneuverDistance(state.toTurn));
   $('nav-remaining').textContent=state.remainingKm<10?state.remainingKm.toFixed(1)+' km':Math.round(state.remainingKm)+' km';$('nav-time').textContent=Math.max(1,Math.ceil(state.remainingSeconds/60))+' min';
-  const eta=new Date(Date.now()+state.remainingSeconds*1000).toLocaleTimeString('sq-AL',{hour:'2-digit',minute:'2-digit'});$('nav-eta').textContent=eta;hint('Mbërritje rreth '+eta+' · pa trafik aktual');
+  const eta=new Date(Date.now()+state.remainingSeconds*1000).toLocaleTimeString('sq-AL',{hour:'2-digit',minute:'2-digit',hour12:false});$('nav-eta').textContent=eta;hint('Mbërritje rreth '+eta+' · pa trafik aktual');
   const next=route.turns[route.turns.indexOf(state.turn)+1];$('nav-next').hidden=!next||state.toTurn>.3||next.atKm-state.turn.atKm>.7;if(!$('nav-next').hidden)$('nav-next').textContent='Më pas '+next.icon+' '+maneuverDistance(next.atKm-state.turn.atKm);
   const milestone=state.toTurn<.04?'now':state.toTurn<.15?'near':state.toTurn<.5?'far':null;
   if(milestone){const key=route.turns.indexOf(state.turn)+':'+milestone;if(!spoken.has(key)){spoken.add(key);say((milestone==='now'?'Tani. ':'Pas '+maneuverDistance(state.toTurn)+'. ')+state.turn.text);}}
@@ -64,7 +65,7 @@ export function createNavigation({context,getFix,closePanels}){
  $('nav-retry').addEventListener('click',async()=>{if(!active||controller)return;const token=generation,current=new AbortController();controller=current;hint('Po kërkoj GPS aktual…');try{const fix=await getFix(current.signal);if(!active||token!==generation||current.signal.aborted)return;if(!freshNavigationFix(fix))throw Error('Prit sinjal më të saktë GPS.');await calculate(fix.point);}catch(error){if(active&&!current.signal.aborted)hint(error.message);}finally{if(controller===current)controller=null;}});
  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&active&&!document.querySelector('dialog[open]'))stop();});
  document.addEventListener('visibilitychange',()=>{if(!active)return;if(document.hidden){quiet();hint('Navigimi është pezull në sfond.');}else{awake();lastAt=0;position(context().location);}});
- createPageTimer(()=>{if(active&&!document.hidden&&!preview&&!arrived&&!needsRoute&&!freshNavigationFix(context().location)){resetMetrics();globalThis.speechSynthesis?.cancel();$('nav-remaining').textContent='—';$('nav-time').textContent='—';turn('Po pres sinjal të saktë GPS','◎');hint('Udhëzimet janë pezull derisa të merret pozicion aktual.');}},2000);
+ createPageTimer(()=>{maybeReroute(context().location);if(active&&!document.hidden&&!preview&&!arrived&&!needsRoute&&!freshNavigationFix(context().location)){resetMetrics();globalThis.speechSynthesis?.cancel();$('nav-remaining').textContent='—';$('nav-time').textContent='—';turn('Po pres sinjal të saktë GPS','◎');hint('Udhëzimet janë pezull derisa të merret pozicion aktual.');}},2000);
  window.addEventListener('pagehide',stop);
  return {start,stop,position,setTraffic:data=>view?.setTraffic(data),getLine:()=>route?.line||null,focusReport(p){follow=false;$('nav-follow').setAttribute('aria-pressed','false');view?.focus(p);},get active(){return active;},refresh(){const search=context().search;$('navigate-route').hidden=!search||search.requestMode==='near';$('navigate-route').disabled=context().busy;document.body.classList.toggle('navigation-ready',Boolean(search&&search.requestMode!=='near'));},route(){const search=context().search;if(search?.center)start(search.center,search.requestMode==='route'?'Destinacioni i itinerarit':'Vendi i zgjedhur');}};
 }
