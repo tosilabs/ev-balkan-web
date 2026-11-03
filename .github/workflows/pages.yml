@@ -94,6 +94,13 @@ jobs:
         if: ${{ !cancelled() && steps.chromium.outcome == 'success' }}
         timeout-minutes: 3
         run: node scripts/driving-browser-check.mjs
+      - name: Check encrypted personal API key on phone
+        if: ${{ !cancelled() && steps.chromium.outcome == 'success' }}
+        timeout-minutes: 2
+        run: node scripts/key-vault-browser-check.mjs
+      - name: Check API Ninjas preflight without credentials
+        continue-on-error: true
+        run: node scripts/api-ninjas-cors-check.mjs
       - name: Verify current public weather APIs in browser
         timeout-minutes: 1
         run: node scripts/weather-smoke.mjs

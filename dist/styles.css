@@ -2758,3 +2758,15 @@ select,input:not([type=checkbox]) {
     top:calc(132px + env(safe-area-inset-top))
   }
 }
+
+/* Personal encrypted API credential: separate from search/history. */
+.api-key-dialog { max-width: 480px; }
+.api-key-state { padding: 12px 14px; border: 1px solid #c8ddf8; border-radius: 14px; background: #edf5ff; color: #123b6a; font-weight: 700; }
+.api-key-dialog label { display: block; margin-top: 16px; font-size: 14px; font-weight: 650; }
+.api-key-dialog input { width: 100%; margin-top: 7px; min-height: 48px; border-radius: 12px; padding: 12px; border: 1px solid #b9cce5; background: #fff; color: #102c49; }
+.api-key-dialog form .primary { margin-top: 20px; width: 100%; min-height: 48px; }
+.api-key-actions { display: grid; gap: 8px; }
+.api-key-actions button { min-height: 48px; }
+.api-key-explanation { margin-top: 18px; font-size: 13px; line-height: 1.6; color: #405875; }
+.api-key-explanation summary { cursor: pointer; padding: 10px 0; font-weight: 650; }
+.api-key-dialog [hidden] { display: none !important; }

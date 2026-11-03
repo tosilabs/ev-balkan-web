@@ -194,3 +194,13 @@ Menuja `⋯` → **Modaliteti i vozitjes** hap një pamje të qetë, me kartë t
 ## Çelësat e API-ve
 
 Çelësat privatë nuk futen në frontend ose te artifact-i i GitHub Pages. [Ndërmjetësi Cloudflare dhe udhëzimet për ruajtjen si Secret](backend/README.md) janë përgatitur me kufij kuote dhe teste. Worker-i dhe lidhja API Ninjas janë ende të paaktivizuara; faqja aktuale vazhdon me burimet publike.
+
+## Çelësi personal në telefon · 3.3
+
+`⋯` → **Çelësi im API** ruan çelësin API Ninjas të enkriptuar në këtë shfletues. Fjalëkalimi (12+ karaktere) nuk ruhet. PBKDF2-SHA256 me 600,000 iteracione, salt rastësor 16 byte dhe AES-GCM-256 me IV të ri 12 byte mbrojnë rekordin e ruajtur. Metadata autentikohet për formatin v1; parametrat e panjohur refuzohen. Nuk ka rikuperim fjalëkalimi: fshihet rekordi dhe vendoset çelësi përsëri.
+
+Pas rihapjes çelësi është i bllokuar. Bllokohet edhe në sfond, me butonin përkatës ose pas 5 minutash pa aktivitet. Teksti i fushave pastrohet pas veprimeve dhe mbylljes; anulimi gjatë dekriptimit nuk e zhbllokon fshehurazi më vonë. Fshirja nuk prek historikun, të ruajturat ose profilin. Storage i bllokuar nuk shkakton ruajtje alternative pa enkriptim.
+
+Ky modul nuk dërgon çelësin në rrjet, GitHub, logje ose historik. Ruajtja është veçmas te `udhembare-api-ninjas-vault-v1`; pastrimi i të dhënave të faqes e heq. Fjalëkalimet e dobëta mbeten të cenueshme nga hamendësimi offline. Pasi zhbllokohet, kod keqdashës që ekzekutohet në të njëjtën faqe mund ta kapë çelësin ose fjalëkalimin; kjo nuk është mbrojtje kundër një faqeje/shfletuesi të komprometuar dhe nuk garanton fshirje fizike të strings nga memoria JavaScript.
+
+**Nuk aktivizohet ende kërkimi API Ninjas** dhe çelësi i zhbllokuar nuk i shton të dhëna hartës. Testi CI i preflight-it përdor OPTIONS pa çelës dhe pa marrje rezultatesh; kjo nuk provon një përgjigje të autentikuar ose mbulimin. Lidhja reale do të kërkojë respektim të CORS dhe planit/licencës. Burimet ekzistuese publike vazhdojnë të punojnë. Serveri Cloudflare mbetet alternativë e përgatitur, e paaktivizuar.
