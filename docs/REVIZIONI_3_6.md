@@ -25,3 +25,9 @@
 Kontrollet e sintaksës dhe testet Node përfshijnë ciklin e ri pagehide/pageshow. Skenarët Chromium kontrollojnë kërkimin, detajet, profilin, motin, ruajtjen offline, profilin e baterisë, driving mode, çelësat e enkriptuar, navigimin 3D/2D dhe raportimet Waze. Rrjedhat e ndërfaqes kontrollohen edhe në gjerësi 320 px, telefon dhe desktop, si dhe navigimi në landscape. Pipeline publikon vetëm kur kontrollet e detyrueshme kalojnë.
 
 Testet e kontrolluara përdorin të dhëna provë. OSRM dhe API-të publike të motit kontrollohen veçmas pa kredenciale. Raportimet me çelësin personal të përdoruesit dhe vozitja reale në telefon/Audi nuk mund të konfirmohen nga këto teste. Një hartë 3D me GPS nuk barazohet me një sistem navigimi të certifikuar; përgatitja e rrugës dhe konfigurimi bëhen kur je i ndalur.
+
+## Rishikimi i navigimit
+
+Kamera dhe shenja e veturës lëvizin mes matjeve GPS; nuk parashikojnë lëvizje pa matje të reja. Orientimi përdor rrotullimin më të shkurtër përmes veriut, lëkundjet e vogla në vend filtrohen dhe zmadhimi përshtatet me shpejtësinë dhe afërsinë e kthesës. Kur matja është e saktë dhe shumë pranë rrugës, vetëm shenja vizuale përshtatet me rrugën; zbulimi i devijimit përdor gjithmonë GPS-in real. Matjet e vjetra ndalojnë udhëzimin.
+
+Renderimi kufizon dendësinë e pikselëve në 1.5 dhe përditësimet e shenjës në rreth 30 fps; ndërtesat janë më pak të theksuara. Këto ulin ngarkesën, por shpejtësia reale varet nga telefoni dhe nuk garantohet pa provë në pajisje. HUD ndan manovrën nga emri i rrugës; fundi tregon mbërritjen, kohën, distancën dhe shpejtësinë GPS kur ofrohet. Nuk hamendësohen kufij shpejtësie apo udhëzim korsish. Garmin/TomTom janë referencë vizuale, jo pretendim barazie në të dhëna, navigim offline ose certifikim.
