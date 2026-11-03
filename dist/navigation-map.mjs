@@ -65,7 +65,7 @@ export function createNavigationMap(container,{changed=()=>{},onDrag=()=>{}}={})
   });
   map.on('error',()=>{/* A style timeout selects the 2D fallback. */});timer=setTimeout(fallback,12000);
  }catch{fallback();}
- return {setRoute(value){route=value;draw();},setTraffic(value){traffic=value;drawTraffic();},focus(p){if(leaflet)leaflet.setView([p.lat,p.lon],16,{animate:false});else map?.easeTo({center:[p.lon,p.lat],zoom:16,duration:0});},position,
+ return {setRoute(value){route=value;lastBearing=null;draw();},setTraffic(value){traffic=value;drawTraffic();},focus(p){if(leaflet)leaflet.setView([p.lat,p.lon],16,{animate:false});else map?.easeTo({center:[p.lon,p.lat],zoom:16,duration:0});},position,
   toggle(){if(!map)return false;tilted=!tilted;if(last&&lastFollow)position(last,true,lastCourse,lastToTurn);else map.easeTo({pitch:tilted?48:0,duration:400});return tilted;},
   remove(){closed=true;clearTimeout(timer);cancelAnimationFrame(frame);marker?.remove?.();endMarker?.remove?.();map?.remove();leaflet?.remove();container.replaceChildren();}
  };

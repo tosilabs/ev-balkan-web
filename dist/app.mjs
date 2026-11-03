@@ -1,6 +1,6 @@
 import {createTraffic} from './traffic.mjs?v=3.6';
 let traffic=null;
-import {createNavigation} from './navigation.mjs?v=3.6';
+import {createNavigation} from './navigation.mjs?v=3.6.1';
 let navigation=null;
 import {createKeyVaultUI} from './key-vault-ui.mjs?v=3.6';
 import {createInterface} from './interface.mjs?v=3.6';

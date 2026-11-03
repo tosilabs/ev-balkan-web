@@ -11,12 +11,12 @@
 <script defer src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script defer src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.1.3/leaflet-maplibre-gl.js"></script>
 <link rel="stylesheet" href="./journey.css?v=3.6"><link rel="stylesheet" href="./driving.css?v=3.6"><link rel="stylesheet" href="./navigation.css?v=3.6"><link rel="stylesheet" href="./minimal.css?v=3.6">
-<script type="module" src="./app.mjs?v=3.6"></script>
+<script type="module" src="./app.mjs?v=3.6.1"></script>
 </head>
 <body>
 <main class="map-app">
 <section class="map-panel" aria-label="Harta e karikuesve"><div id="map"></div><div id="map-fallback" hidden>Harta nuk u ngarkua. Përdor “Kërko” dhe listën e karikuesve.</div></section>
-<header class="topbar"><a class="brand" href="./" aria-label="Udhëmbarë — Çdo rrugë, më e menduar."><span class="brand-icon"><img src="./icon.svg?v=3.6" alt="" width="34" height="34"></span><span>UDHËMBARË<small>v3.6</small></span></a><button id="search-open" class="search-launch" aria-haspopup="dialog" aria-controls="search-dialog"><span aria-hidden="true">⌕</span><span>Kërko stacione</span></button><button id="more-open" class="top-button" type="button" aria-label="Më shumë mundësi" aria-haspopup="dialog" aria-controls="menu-dialog" aria-expanded="false">⋯</button></header>
+<header class="topbar"><a class="brand" href="./" aria-label="Udhëmbarë — Çdo rrugë, më e menduar."><span class="brand-icon"><img src="./icon.svg?v=3.6" alt="" width="34" height="34"></span><span>UDHËMBARË<small>v3.6.1</small></span></a><button id="search-open" class="search-launch" aria-haspopup="dialog" aria-controls="search-dialog"><span aria-hidden="true">⌕</span><span>Kërko stacione</span></button><button id="more-open" class="top-button" type="button" aria-label="Më shumë mundësi" aria-haspopup="dialog" aria-controls="menu-dialog" aria-expanded="false">⋯</button></header>
 
 <div class="map-tools" role="group" aria-label="Mjetet e hartës"><button id="locate-me" title="Vendndodhja ime" aria-label="Vendndodhja ime">◎</button><button id="layers-open" type="button" title="Harta dhe shtresat" aria-label="Harta dhe shtresat" aria-haspopup="dialog" aria-controls="layers-dialog">▱</button></div>
 <button id="pick-hint" class="pick-hint" type="button" hidden></button>

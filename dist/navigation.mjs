@@ -1,6 +1,6 @@
 import {createPageTimer} from './lifecycle.mjs?v=3.6';
 import {fetchNavigation,navigationProgress,freshNavigationFix,maneuverDistance} from './navigation-core.mjs?v=3.6';
-import {createNavigationMap} from './navigation-map.mjs?v=3.6';
+import {createNavigationMap} from './navigation-map.mjs?v=3.6.1';
 import {navigationUrl} from './core.mjs?v=3.6';
 
 export function createNavigation({context,getFix,closePanels}){
