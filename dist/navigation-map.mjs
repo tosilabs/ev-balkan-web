@@ -1,9 +1,9 @@
 export function createNavigationMap(container,{changed=()=>{},onDrag=()=>{}}={}){
- let map=null,leaflet=null,routeLayer=null,marker=null,endMarker=null,timer=null,route=null,last=null,tilted=true,closed=false;
+ let map=null,leaflet=null,routeLayer=null,marker=null,endMarker=null,timer=null,route=null,last=null,tilted=true,closed=false,ready=false;
  const feature=coordinates=>({type:'Feature',properties:{},geometry:{type:'LineString',coordinates}});
  function draw(){if(!route)return;
   if(leaflet){if(routeLayer)leaflet.removeLayer(routeLayer);if(endMarker)endMarker.remove();const end=route.line.at(-1);endMarker=L.circleMarker([end.lat,end.lon],{radius:8,color:'#fff',weight:3,fillColor:'#178565',fillOpacity:1}).addTo(leaflet);routeLayer=L.polyline(route.line.map(p=>[p.lat,p.lon]),{color:'#0758d6',weight:7,opacity:.95}).addTo(leaflet);return;}
-  if(!map?.isStyleLoaded())return;
+  if(!map||!ready)return;
   const data=feature(route.line.map(p=>[p.lon,p.lat]));
   if(endMarker)endMarker.remove();const end=route.line.at(-1),flag=document.createElement('div');flag.className='navigation-destination';flag.textContent='⚑';flag.setAttribute('aria-label','Destinacioni');endMarker=new maplibregl.Marker({element:flag}).setLngLat([end.lon,end.lat]).addTo(map);
   if(map.getSource('nav-route'))map.getSource('nav-route').setData(data);
@@ -26,7 +26,7 @@ export function createNavigationMap(container,{changed=()=>{},onDrag=()=>{}}={})
  try{if(!globalThis.maplibregl)throw Error('WebGL');
   map=new maplibregl.Map({container,style:'https://tiles.openfreemap.org/styles/positron',center:[21.43,42],zoom:15,pitch:55,bearing:0,attributionControl:true});
   map.on('dragstart',onDrag);map.on('zoomstart',event=>{if(event.originalEvent)onDrag();});map.on('rotatestart',event=>{if(event.originalEvent)onDrag();});
-  map.once('load',()=>{if(closed)return;clearTimeout(timer);
+  map.once('load',()=>{if(closed)return;ready=true;clearTimeout(timer);
    const building=map.getStyle().layers.find(layer=>layer['source-layer']==='building'&&layer.type==='fill');
    if(building)try{map.addLayer({id:'nav-buildings',source:building.source,'source-layer':'building',type:'fill-extrusion',minzoom:14,paint:{'fill-extrusion-color':'#becbd9','fill-extrusion-height':['to-number',['get','render_height'],0],'fill-extrusion-base':['to-number',['get','render_min_height'],0],'fill-extrusion-opacity':.7}});}catch{/* Tilted map remains usable without building heights. */}
    draw();if(last)position(last,true);changed('3d');

@@ -106,6 +106,7 @@ jobs:
         timeout-minutes: 3
         run: node scripts/navigation-browser-check.mjs
       - name: Verify real OSRM navigation steps in browser
+        if: ${{ !cancelled() && steps.chromium.outcome == 'success' }}
         timeout-minutes: 1
         run: node scripts/navigation-live-check.mjs
       - name: Verify current public weather APIs in browser
