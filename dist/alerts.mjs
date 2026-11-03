@@ -1,4 +1,4 @@
-import {freshStatus} from './operating.mjs?v=3.1';
+import {freshStatus} from './operating.mjs?v=3.2';
 export function reportedFinesPrice(data,id,now=Date.now()){
  if(!freshStatus(data?.generated_at,now)||!Array.isArray(data?.features))return null;
  const location=data.features.find(f=>String(f.id??f.properties?.id)===String(id)),price=location?.properties?.price_range;

@@ -1,14 +1,14 @@
-import {reportedFinesPrice,watchMessages} from './alerts.mjs?v=3.1';
-import {vehicleProfile,compatiblePower,chargingMinutes,parseTariff,sessionCost} from './energy.mjs?v=3.1';
-import {planningCandidates,optimizeJourney,revalidateJourney} from './planner.mjs?v=3.1';
-import {stationDetour,roadRoute,roadMatrix} from './roads.mjs?v=3.1';
-import {stationReport,reportUrl} from './community.mjs?v=3.1';
-import {offlinePut,offlineGet} from './offline.mjs?v=3.1';
-import {interpretQuery} from './query.mjs?v=3.1';
-import {currentOperating,checkOperating} from './operating.mjs?v=3.1';
-import {requestJson} from './services.mjs?v=3.1';
-import {webUrl} from './details.mjs?v=3.1';
-import {distance} from './core.mjs?v=3.1';
+import {reportedFinesPrice,watchMessages} from './alerts.mjs?v=3.2';
+import {vehicleProfile,compatiblePower,chargingMinutes,parseTariff,sessionCost} from './energy.mjs?v=3.2';
+import {planningCandidates,optimizeJourney,revalidateJourney} from './planner.mjs?v=3.2';
+import {stationDetour,roadRoute,roadMatrix} from './roads.mjs?v=3.2';
+import {stationReport,reportUrl} from './community.mjs?v=3.2';
+import {offlinePut,offlineGet} from './offline.mjs?v=3.2';
+import {interpretQuery} from './query.mjs?v=3.2';
+import {currentOperating,checkOperating} from './operating.mjs?v=3.2';
+import {requestJson} from './services.mjs?v=3.2';
+import {webUrl} from './details.mjs?v=3.2';
+import {distance} from './core.mjs?v=3.2';
 const fields=['name','capacity','soc','reserve','consumption','maxDC','maxAC','mass','temperature'];
 const node=(tag,value,cls)=>{const e=document.createElement(tag);if(value!=null)e.textContent=value;if(cls)e.className=cls;return e;};
 const local={get(key,fallback){try{return JSON.parse(localStorage.getItem(key))??fallback;}catch{return fallback;}},put(key,value){localStorage.setItem(key,JSON.stringify(value));}};
@@ -60,7 +60,7 @@ export function createJourneyTools({map,L,getContext,openStation,openArea,fitAll
  const observe=async()=>{if(document.hidden||!watches.length)return;try{
   if(watches.some(w=>Number.isFinite(w.priceThreshold))&&Date.now()-lastPriceCheck>600000){lastPriceCheck=Date.now();try{priceData=await requestJson('https://public.finescharging.com/v1/locations.geojson',{timeout:8000});}catch{priceData=null;}}
   const updated=await checkOperating(watches.map(w=>w.station),{signal:new AbortController().signal,minPower:0});
-  for(const station of updated){const watch=watches.find(w=>w.station.id===station.id);if(!watch)continue;watch.station=station;for(const message of watchMessages(watch,currentOperating(station),reportedFinesPrice(priceData,station.finesId))){notice(message);$('watch-status').textContent=message;if(globalThis.Notification?.permission==='granted')try{new Notification('Udhëmbarë',{body:message,icon:'./icon.svg?v=3.1'});}catch{}}}
+  for(const station of updated){const watch=watches.find(w=>w.station.id===station.id);if(!watch)continue;watch.station=station;for(const message of watchMessages(watch,currentOperating(station),reportedFinesPrice(priceData,station.finesId))){notice(message);$('watch-status').textContent=message;if(globalThis.Notification?.permission==='granted')try{new Notification('Udhëmbarë',{body:message,icon:'./icon.svg?v=3.2'});}catch{}}}
   local.put('udhembare-watches-v1',watches);
  }catch{}};
  setInterval(observe,120000);

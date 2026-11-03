@@ -1,0 +1,45 @@
+import {chromium} from 'playwright';
+import {createServer} from 'node:http';
+import {readFile,mkdir} from 'node:fs/promises';
+import {resolve,extname} from 'node:path';
+import assert from 'node:assert/strict';
+const root=resolve('dist'),types={'.html':'text/html','.mjs':'text/javascript','.js':'text/javascript','.css':'text/css','.svg':'image/svg+xml','.json':'application/json','.webmanifest':'application/manifest+json'};
+const server=createServer(async(req,res)=>{try{const p=resolve(root,'.'+new URL(req.url,'http://localhost').pathname);if(p!==root&&!p.startsWith(root+'/')){res.writeHead(403).end();return;}const file=p===root?resolve(root,'index.html'):p;res.writeHead(200,{'Content-Type':types[extname(file)]||'text/plain'});res.end(await readFile(file));}catch{res.writeHead(404).end();}});
+await new Promise(r=>server.listen(8082,'127.0.0.1',r));let browser,page;const errors=[];
+const stations=[
+ {type:'node',id:1,lat:41.999,lon:21.426,tags:{amenity:'charging_station',name:'CCS Qendra',operator:'Operatori A','socket:type2_combo':'2','socket:type2_combo:output':'150 kW'}},
+ {type:'node',id:2,lat:42.001,lon:21.43,tags:{amenity:'charging_station',name:'AC Parku','socket:type2':'2','socket:type2:output':'22 kW'}},
+ {type:'node',id:3,lat:42.004,lon:21.44,tags:{amenity:'charging_station',name:'CCS Lindja','socket:type2_combo':'2','socket:type2_combo:output':'100 kW'}}];
+try{
+ browser=await chromium.launch();const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,permissions:['geolocation'],geolocation:{latitude:41.9981,longitude:21.4254},serviceWorkers:'block'});page=await context.newPage();page.setDefaultTimeout(20000);page.on('pageerror',e=>errors.push(e.message));
+ await context.route('**/data/registry-index.json',r=>r.fulfill({status:404,body:''}));await context.route('**/data/charging-balkans.json',r=>r.fulfill({json:{bounds:[34,12,48.5,30],fetchedAt:new Date().toISOString(),elements:stations}}));await context.route('**/data/community.json',r=>r.fulfill({json:{reports:[]}}));
+ await context.route(/https:\/\/(api\.open-meteo\.com|api\.opentopodata\.org)\//,r=>r.abort());
+ let delay=false,fail=false;
+ await context.route(/https:\/\/(router\.project-osrm\.org|routing\.openstreetmap\.de)\//,async r=>{if(fail)return r.abort();if(delay)await new Promise(resolve=>setTimeout(resolve,250));return r.fulfill({json:{code:'Ok',routes:[{distance:5300,duration:660,geometry:{coordinates:[[21.4254,41.9981],[21.44,42.004]]}}]}});});
+ const settled=()=>page.waitForFunction(()=>!document.body.classList.contains('busy')&&!document.querySelector('#result-count').hidden);
+ await page.goto('http://127.0.0.1:8082/',{waitUntil:'networkidle',timeout:60000});await settled();
+ await page.locator('#more-open').click();await page.locator('#drive-open').click();await settled();await page.locator('#drive-card').waitFor();await page.getByText('5.3 km · 11 min',{exact:true}).waitFor();
+ assert.equal(await page.locator('#drive-title').innerText(),'CCS Qendra');assert.equal(await page.locator('#station-panel').isVisible(),false);
+ for(const selector of ['.topbar','.bottom-controls','#weather-open','#terrain-open','#fit-results','.leaflet-control-zoom'])assert.equal(await page.locator(selector).isVisible(),false,'Driving must hide '+selector);
+ assert.equal(await page.locator('.user-location-marker').count(),1);assert.equal(await page.locator('#drive-index').innerText(),'1 / 3');assert.equal(await page.locator('#drive-location-note').isVisible(),false);
+ assert.match(await page.locator('#drive-navigate').getAttribute('href'),/waze.com.*ll=41.999,21.426/);
+ for(const id of ['drive-exit','drive-near','drive-fast','drive-route','drive-navigate','drive-next','drive-audi']){const b=await page.locator('#'+id).boundingBox();assert.ok(b.height>=56&&b.x>=0&&b.x+b.width<=390,'Accessible driving control '+id);}
+ await page.locator('#drive-next').click();assert.equal(await page.locator('#drive-title').innerText(),'AC Parku');await page.locator('#drive-audi').click();await page.locator('#share-dialog').waitFor();await page.keyboard.press('Escape');assert.equal(await page.locator('#driving').isVisible(),true);
+ await page.locator('#drive-fast').click();await settled();await page.waitForFunction(()=>document.querySelector('#drive-index').textContent==='1 / 2');assert.match(await page.locator('#drive-connector').innerText(),/CCS2.*150 kW/);
+ await mkdir('browser-results',{recursive:true});await page.screenshot({path:'browser-results/driving-phone.png'});console.log('VISUAL_DRIVING_PHONE:'+(await page.screenshot()).toString('base64'));
+ await page.locator('#drive-next').click();assert.equal(await page.locator('#drive-title').innerText(),'CCS Lindja');
+ // A newly selected station must not receive the previous one's asynchronous ETA.
+ delay=true;await page.locator('#drive-next').click();await page.locator('#drive-next').click();await page.getByText('5.3 km · 11 min',{exact:true}).waitFor();assert.match(await page.locator('#drive-navigate').getAttribute('href'),/ll=42.004,21.44/);delay=false;
+ await page.setViewportSize({width:320,height:740});assert.equal(await page.locator('body').evaluate(e=>e.scrollWidth<=innerWidth),true);let action=await page.locator('#drive-navigate').boundingBox();assert.ok(action.y+action.height<=740,'Navigation CTA visible on narrow phone');await page.screenshot({path:'browser-results/driving-small-phone.png'});
+ await page.setViewportSize({width:844,height:390});action=await page.locator('#drive-navigate').boundingBox();assert.ok(action.y+action.height<=390,'Navigation CTA visible in landscape');await page.screenshot({path:'browser-results/driving-landscape.png'});
+ await page.setViewportSize({width:1440,height:1000});await page.screenshot({path:'browser-results/driving-desktop.png'});
+ await page.setViewportSize({width:390,height:844});await page.reload({waitUntil:'networkidle'});await settled();await page.locator('#drive-card').waitFor();assert.equal(await page.locator('#driving').isVisible(),true,'Remember chosen view');
+ await page.locator('#drive-exit').click();assert.equal(await page.locator('#driving').isVisible(),false);assert.equal(await page.locator('.topbar').isVisible(),true);assert.equal(await page.locator('#more-open').evaluate(el=>document.activeElement===el),true);
+ // Configure a route through the compact shortcut, then return to the route's driving view.
+ await page.locator('#more-open').click();await page.locator('#drive-open').click();await settled();await page.locator('#drive-route').click();await page.locator('#search-dialog').waitFor();assert.equal(await page.locator('#tab-route').getAttribute('aria-selected'),'true');await page.locator('#destination').fill('42.004,21.44');await page.getByRole('button',{name:'Gjej karikues',exact:true}).click();await settled();await page.locator('#terrain-close').click();await page.locator('#more-open').click();await page.locator('#drive-open').click();assert.equal(await page.locator('#drive-route').getAttribute('aria-pressed'),'true');await page.locator('#drive-exit').click();
+ // GPS denial opens an actionable manual search rather than an empty driving overlay.
+ await context.clearPermissions();await page.locator('#more-open').click();await page.locator('#drive-open').click();await page.locator('#drive-near').click();await page.locator('#search-dialog').waitFor();assert.equal(await page.locator('#driving').isVisible(),false);assert.equal(await page.locator('#location-note').isVisible(),true);await page.locator('#destination').fill('41.9981,21.4254');await page.getByRole('button',{name:'Gjej karikues',exact:true}).click();await settled();
+ await page.locator('#more-open').click();await page.locator('#drive-open').click();await page.locator('#search-dialog').waitFor();assert.equal(await page.locator('#driving').isVisible(),false);
+ assert.deepEqual(errors,[]);console.log('PASS DRIVING: compact UI, 56px controls, CCS connector filtering, alternatives, Waze/Audi, ETA cancellation, phone/landscape/desktop, persistence, route shortcut and denied GPS recovery');await context.close();
+}catch(error){console.error('DRIVING ERRORS',errors);if(page){console.error('DRIVING STATE',await page.locator('#drive-empty-note').textContent().catch(()=>''));const shot=await page.screenshot({path:'browser-results/driving-failure.png'}).catch(()=>null);if(shot)console.log('VISUAL_DRIVING_FAILURE:'+shot.toString('base64'));}throw error;}
+finally{await browser?.close();await new Promise(r=>server.close(r));}

@@ -1,0 +1,42 @@
+/* A quiet map and one decision at a time. Kept independent of the full UI. */
+.driving[hidden],.driving [hidden]{display:none!important}
+.driving-menu-action{grid-column:1/-1;background:#e9f2ff!important;color:#0758d6!important}
+.driving-menu-action small{display:block;font-weight:400;font-size:12px;margin-top:4px;color:#445b75}
+.driving{position:fixed;inset:0;z-index:1100;pointer-events:none;color:#102c49;font-size:16px}
+.driving button,.driving a{pointer-events:auto;min-height:56px;font:inherit;font-weight:700;cursor:pointer;border:0;border-radius:18px;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px}
+.driving button:disabled{opacity:.5;cursor:wait}
+.driving a:focus-visible,.driving button:focus-visible{outline:3px solid #0758d6;outline-offset:4px}
+.drive-header{position:absolute;top:max(12px,env(safe-area-inset-top));left:12px;right:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;background:#fff;border:1px solid #d5e4f7;border-radius:24px;padding:8px 10px;box-shadow:0 6px 24px #163b5b18;pointer-events:auto}
+.drive-brand{display:flex;align-items:center;gap:10px}.drive-brand img{width:40px;height:40px}.drive-brand strong{font-size:18px;display:block}.drive-brand span{display:block;font-size:12px;color:#52677e;margin-top:3px}
+.driving #drive-exit{min-width:72px;background:#edf2f8;color:#102c49;padding:0 14px}
+.drive-shortcuts{position:absolute;top:calc(max(12px,env(safe-area-inset-top)) + 86px);left:12px;right:12px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.drive-shortcuts button{background:#fff;color:#254969;box-shadow:0 3px 12px #18375017;font-size:13px;border:1px solid #d2e1f3;padding:4px}
+.drive-shortcuts button[aria-pressed=true]{background:#0758d6;color:#fff;border-color:#0758d6}
+.driving .drive-follow{position:absolute;right:14px;top:calc(max(12px,env(safe-area-inset-top)) + 160px);width:56px;background:#fff;color:#0758d6;box-shadow:0 4px 20px #1b3d6120;font-size:27px;border:2px solid #d7e7fb}
+.drive-follow[aria-pressed=true]{border-color:#0758d6!important}
+.drive-bottom{position:absolute;left:12px;right:12px;bottom:max(12px,env(safe-area-inset-bottom));pointer-events:auto;max-height:calc(100dvh - 254px);overflow:auto;border-radius:26px;scrollbar-width:thin}
+.drive-message{display:table;margin:0 auto 9px;padding:8px 14px;border-radius:20px;background:#fff;color:#234563;font-size:12px;font-weight:700;box-shadow:0 2px 14px #18375016;text-align:center}
+.drive-location-note{background:#fff4d7;color:#684400;padding:9px 12px;font-size:12px;text-align:center;border-radius:12px;margin:0 0 8px}
+.drive-card,.drive-empty{background:#fff;border:1px solid #c5daf5;border-radius:26px;padding:20px;box-shadow:0 7px 35px #18375026}
+.drive-card-heading{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.drive-connector{font-size:14px;font-weight:750;color:#0758d6}.drive-index{font-size:12px;color:#51657c;white-space:nowrap}
+.drive-card h2,.drive-empty h2{font-size:24px;line-height:1.2;letter-spacing:-.6px;margin:12px 0 9px;overflow-wrap:anywhere}
+.drive-card h2{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.drive-availability{font-size:12px;margin:0;color:#52677e}.drive-availability[data-state=working]{color:#14714c}
+.drive-travel{font-size:28px;font-weight:800;line-height:1.15;letter-spacing:-.5px;margin:18px 0 5px;color:#102c49}
+.drive-travel-note{font-size:11px;color:#52677e;margin:0 0 17px}
+.drive-actions{display:grid;grid-template-columns:1.7fr 1fr;gap:8px}
+.driving .drive-navigate{background:#0758d6;color:#fff;padding:10px;font-size:16px}
+.driving #drive-next{background:#eaf2ff;color:#0758d6;padding:8px;font-size:15px}
+.driving #drive-audi{margin-top:8px;background:#f0f4f9;color:#254969;width:100%;font-size:14px}
+.drive-empty p{font-size:14px;color:#52677e;line-height:1.5}.driving #drive-manual{width:100%;background:#0758d6;color:#fff}
+.driving-mode .topbar,.driving-mode .bottom-controls,.driving-mode .map-tools,.driving-mode .leaflet-control-zoom,.driving-mode .area-badge,.driving-mode .speed-legend,.driving-mode .active-toggle,.driving-mode .weather-open,.driving-mode .terrain-open,.driving-mode .fit-all,.driving-mode .fit-results,.driving-mode .search-area,.driving-mode .area-search,.driving-mode #status,.driving-mode #cancel,.driving-mode .weather-marker{display:none!important}
+.driving-mode .route-weather-alert{top:calc(max(12px,env(safe-area-inset-top)) + 160px);left:12px;right:82px;bottom:auto;width:auto;max-width:calc(100% - 94px);min-height:56px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.driving-mode .route-weather-alert:not(.has-warning){display:none!important}
+.driving-mode .connectivity-state{top:calc(max(12px,env(safe-area-inset-top)) + 224px);bottom:auto;z-index:1200;font-size:12px}
+.driving-mode .leaflet-bottom{bottom:0!important}.driving-mode .leaflet-control-attribution{font-size:8px;opacity:.8}
+@media(min-width:760px){.drive-header,.drive-shortcuts{width:440px;right:auto;left:24px}.drive-bottom{width:440px;left:24px;right:auto;bottom:24px;max-height:calc(100dvh - 210px)}.drive-card{padding:24px}.drive-card h2{font-size:28px}.driving .drive-follow{top:24px;right:24px}.driving-mode .route-weather-alert{left:auto;right:100px;top:24px;max-width:calc(100vw - 600px)}}
+@media(max-height:560px) and (orientation:landscape){.drive-header{width:270px;left:12px;right:auto}.drive-shortcuts{width:270px;left:12px;right:auto}.drive-bottom{left:auto;right:12px;width:min(46vw,420px);max-height:calc(100dvh - 24px)}.driving .drive-follow{left:12px;right:auto}.drive-card{padding:14px}.drive-card h2{font-size:21px}.drive-travel{font-size:24px;margin-top:12px}.drive-message{display:none}.driving-mode .route-weather-alert{top:auto;bottom:14px;right:auto;left:12px;max-width:270px}.driving-mode .connectivity-state{max-width:260px;left:12px}}
+@media(max-width:350px){.drive-brand strong{font-size:16px}.drive-brand span{font-size:11px}.drive-shortcuts button{font-size:11px}.drive-card{padding:16px}.drive-card h2{font-size:21px}.drive-travel{font-size:25px}.driving .drive-navigate{font-size:14px}}
+
+.driving-mode .terrain-road{pointer-events:none}

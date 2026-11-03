@@ -186,3 +186,7 @@ Udhëtimi dhe stacionet mund të ruhen në IndexedDB. Kopja offline shfaq datën
 ### Revizion i ndërfaqes dhe besueshmërisë (v3.1)
 
 Menu më e qartë, filtra shtesë të grupuar, kontrolle më të mëdha dhe përdorim me tastierë. Korrigjohen tarifat e paqarta/falas, rillogaritja e kostos në rrugën reale, planet e vjetra pas dështimit, rikthimi i kandidatëve të përjashtuar, anulimi i kërkesave të ndara dhe përzierja e versioneve të regjistrit. Raportet e ndryshuara pas miratimit kërkojnë miratim të ri. Detajet dhe kufijtë e kontrollit janë te [REVIZIONI_3_1.md](docs/REVIZIONI_3_1.md).
+
+## Modaliteti i vozitjes · 3.2
+
+Menuja `⋯` → **Modaliteti i vozitjes** hap një pamje të qetë, me kartë të vetme, GPS, kohë rrugore, shkurtore CCS të shpejtë dhe navigim Waze/Audi. `Dil ×` rikthen pamjen e plotë. [Funksionet dhe shqyrtimi i EMPower, scraper-it dhe Powerly](docs/MODALITETI_VOZITJES_3_2.md).

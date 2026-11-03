@@ -1,4 +1,4 @@
-import {point} from './core.mjs?v=3.1';
+import {point} from './core.mjs?v=3.2';
 export function stationReport(raw){
  const location=point(raw.lat,raw.lon);const kind=['missing','works','fault','correction','review'].includes(raw.kind)?raw.kind:'correction';
  const name=String(raw.name||'').trim().slice(0,160);if(!name)throw Error('Shkruaj emrin e lokacionit.');

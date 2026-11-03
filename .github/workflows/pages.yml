@@ -90,6 +90,10 @@ jobs:
         if: ${{ !cancelled() && steps.chromium.outcome == 'success' }}
         timeout-minutes: 3
         run: node scripts/journey-browser-check.mjs
+      - name: Check simple driving mode and GPS recovery
+        if: ${{ !cancelled() && steps.chromium.outcome == 'success' }}
+        timeout-minutes: 3
+        run: node scripts/driving-browser-check.mjs
       - name: Verify current public weather APIs in browser
         timeout-minutes: 1
         run: node scripts/weather-smoke.mjs

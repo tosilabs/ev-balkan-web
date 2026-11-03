@@ -1,28 +1,30 @@
-import {createInterface} from './interface.mjs?v=3.1';
-import {createJourneyTools} from './journey-ui.mjs?v=3.1';
+import {createInterface} from './interface.mjs?v=3.2';
+import {createDriving} from './driving.mjs?v=3.2';
+let driving=null;
+import {createJourneyTools} from './journey-ui.mjs?v=3.2';
 let journeyTools=null;
-import {point,coordinates,distance,bounds,settings,parseStations,validStationId,destinationUrl,shareData,navigationUrl} from './core.mjs?v=3.1';
-import {localPlaces} from './cities.mjs?v=3.1';
-import {requestJson as json,loadCharging} from './services.mjs?v=3.1';
-import {externalLocationUrl,bestClass,webUrl,setProviderCatalog} from './details.mjs?v=3.1';
-import {photoSection} from './photos.mjs?v=3.1';
-import {finesLiveSection,showSources} from './sources-ui.mjs?v=3.1';
-import {checkOperating,currentOperating,workingOnly} from './operating.mjs?v=3.1';
-import {loadTerrain,coloredPieces,TERRAIN} from './terrain.mjs?v=3.1';
-import {renderProfile} from './terrain-ui.mjs?v=3.1';
-import {cleanHistory,cleanHistoryEntry,addHistory,encodeHistory,historyLabel} from './history.mjs?v=3.1';
-import {stationTravel,formatTravel} from './travel.mjs?v=3.1';
-import {createLocationLayer,locationFix} from './location.mjs?v=3.1';
+import {point,coordinates,distance,bounds,settings,parseStations,validStationId,destinationUrl,shareData,navigationUrl} from './core.mjs?v=3.2';
+import {localPlaces} from './cities.mjs?v=3.2';
+import {requestJson as json,loadCharging} from './services.mjs?v=3.2';
+import {externalLocationUrl,bestClass,webUrl,setProviderCatalog} from './details.mjs?v=3.2';
+import {photoSection} from './photos.mjs?v=3.2';
+import {finesLiveSection,showSources} from './sources-ui.mjs?v=3.2';
+import {checkOperating,currentOperating,workingOnly} from './operating.mjs?v=3.2';
+import {loadTerrain,coloredPieces,TERRAIN} from './terrain.mjs?v=3.2';
+import {renderProfile} from './terrain-ui.mjs?v=3.2';
+import {cleanHistory,cleanHistoryEntry,addHistory,encodeHistory,historyLabel} from './history.mjs?v=3.2';
+import {stationTravel,formatTravel} from './travel.mjs?v=3.2';
+import {createLocationLayer,locationFix} from './location.mjs?v=3.2';
 let locationLayer=null,locationWatch=null;
-import {initBasemap} from './basemap.mjs?v=3.1';
+import {initBasemap} from './basemap.mjs?v=3.2';
 let detailStation=null,stationFromList=false,travelController=null,manualTravelOrigin=null,deviceLocation=null,gpsDenied=false;
-import {routeWeatherPoints,fetchWeather,selectForecast,radarFrames,radarTile} from './weather.mjs?v=3.1';
-import {renderWeatherRows} from './weather-ui.mjs?v=3.1';
+import {routeWeatherPoints,fetchWeather,selectForecast,radarFrames,radarTile} from './weather.mjs?v=3.2';
+import {renderWeatherRows} from './weather-ui.mjs?v=3.2';
 let weatherState=null,weatherController=null,weatherLayer=null,radarData=null,radarFetchedAt=0,radarController=null,radarLayer=null,radarCoverage=null,radarTimer=null;
-import {stationMap} from './mini-map.mjs?v=3.1';
+import {stationMap} from './mini-map.mjs?v=3.2';
 let miniMapDisposers=[];
 let candidates=[],lastSearch=null,routeState=null,terrainController=null,terrainMarker=null,chartControl=null,pendingReplay=null;
-import {migrateLegacyStorage} from './storage.mjs?v=3.1';
+import {migrateLegacyStorage} from './storage.mjs?v=3.2';
 migrateLegacyStorage();
 const $=id=>document.getElementById(id);
 const providerReady=json(new URL('./data/providers.json',import.meta.url).href,{timeout:4000}).catch(()=>json(new URL('./providers.json',import.meta.url).href,{timeout:4000})).then(setProviderCatalog).catch(()=>{});
@@ -55,6 +57,7 @@ $('status').addEventListener('click',()=>showResults(true));
 $('locate-me').addEventListener('click',()=>{if(active)return;chooseMode('near');showResults(false);$('radius').value='10';$('search-form').requestSubmit();});
 function busy(value){if(value)journeyTools?.reset();document.body.classList.toggle('busy',value);$('cancel').hidden=!value;
   document.querySelectorAll('#search-form input,#search-form select,#search-form button[type=submit],.tabs button,#saved-open,#pick-map,#locate-me,#filters-open,#search-open,#active-toggle,#history-open').forEach(el=>el.disabled=value);
+  driving?.refresh();
 }
 function syncAlongRoute(){$('along-route').setAttribute('aria-pressed',String(Number($('radius').value)===.3));}
 $('along-route').addEventListener('click',()=>{$('radius').value='0.3';$('route-order').value='progress';syncAlongRoute();});
@@ -82,6 +85,7 @@ function mapInit(){
   initBasemap(map,L);
   locationLayer=createLocationLayer(map,L);
   markers=L.layerGroup().addTo(map);
+  map.on('dragstart',()=>driving?.dragged());
   map.on('click',event=>{
     if(!picking||active)return;
     const p=point(event.latlng.lat.toFixed(6),event.latlng.lng.toFixed(6));
@@ -119,7 +123,7 @@ function locationRecovery(error,requestMode){
  const failure=Error(error.message);failure.locationRecovery=true;throw failure;
 }
 function updateDevicePosition(pos){
- try{deviceLocation=locationLayer?locationLayer.update(pos):locationFix(pos);gpsDenied=false;$('locate-me').title='Vendndodhja ime · saktësia '+(deviceLocation.accuracy===null?'e panjohur':'±'+Math.round(deviceLocation.accuracy)+' m');return deviceLocation.point;}catch{return null;}
+ try{deviceLocation=locationLayer?locationLayer.update(pos):locationFix(pos);gpsDenied=false;$('locate-me').title='Vendndodhja ime · saktësia '+(deviceLocation.accuracy===null?'e panjohur':'±'+Math.round(deviceLocation.accuracy)+' m');driving?.position();return deviceLocation.point;}catch{return null;}
 }
 function startLocationWatch(){
  if(locationWatch!==null||document.hidden||!navigator.geolocation?.watchPosition)return;
@@ -450,6 +454,7 @@ function syncStationCondition(){
 }
 function syncStationSave(){if(!detailStation)return;const saved=favourite(detailStation);$('station-save').textContent=saved?'♥':'♡';$('station-save').setAttribute('aria-pressed',String(saved));$('station-save').setAttribute('aria-label',(saved?'Hiq nga të ruajturat: ':'Ruaj: ')+detailStation.name);}
 function openStation(station,fromList=false){
+ if(driving?.pick(station))return;
  journeyTools?.close();setWeatherOpen(false);closeStation();detailStation=station;stationFromList=fromList;showResults(false);setTerrainOpen(false);
  document.body.classList.add('station-open');$('station-panel').hidden=false;markers?.eachLayer(marker=>marker.getElement?.()?.classList.toggle('marker-selected',marker.options.stationId===station.id));
  if(map){map.setView([station.point.lat,station.point.lon],Math.max(16,map.getZoom()),{animate:false});const size=map.getSize();map.panBy(size.x>=760?[-Math.min(230,size.x*.2),0]:[0,size.y*.24],{animate:false});}
@@ -527,7 +532,7 @@ function applyOperating(preserve=true){
  $('result-count').textContent=String(stations.length);$('result-count').hidden=false;
  const counts={working:0,offline:0,unknown:0};for(const s of candidates)counts[currentOperating(s).key]++;
  toast(`${lastSearch.offline?'KOPJE OFFLINE · statusi kërkon internet. ':''}${counts.working} në punë · ${counts.offline} jashtë shërbimit · ${counts.unknown} të pakonfirmuar. ${fetchedAt?'Regjistri u shkarkua më '+new Date(fetchedAt).toLocaleDateString('sq-AL')+'. ':''}Status aktual nga Fines, kur ofrohet. Në punë mund të jetë edhe i zënë. ${requestMode==='route'?'Renditur sipas filtrit të itinerarit. Kilometrat përgjatë rrugës janë deri te pika më e afërt në vijën e saj; largësia anësore nuk është devijimi real.':'Distanca në vijë ajrore.'}`);
- document.body.classList.add('has-results');renderCards();drawResults(line,center,preserve);journeyTools?.refresh();
+ document.body.classList.add('has-results');renderCards();drawResults(line,center,preserve);journeyTools?.refresh();driving?.refresh();
 }
 function changeActive(){
  syncActive();const options=storage.get('udhembare-settings-v2',{});storage.set('udhembare-settings-v2',{...options,activeOnly:$('only-active').checked});
@@ -595,7 +600,7 @@ $('search-form').addEventListener('submit',async event=>{
 
   }catch(error){
     if(active!==controller)return;
-    if(error.locationRecovery){openSearch();queueMicrotask(()=>$(requestMode==='route'?'origin':'destination').focus());}
+    if(error.locationRecovery){if(driving?.active)driving.exit();openSearch();queueMicrotask(()=>$(requestMode==='route'?'origin':'destination').focus());}
     $('results-title').textContent=error.locationRecovery?'Cakto lokacionin manualisht':'Provo një kërkim tjetër';
     toast(error.name==='AbortError'?'Kërkimi u anulua.':error.name==='TimeoutError'?'Shërbimi vonoi përgjigjen. Provo përsëri.':error.message||'Kërkimi dështoi. Kontrollo internetin dhe provo përsëri.',error.name!=='AbortError');
   }finally{if(active===controller){active=null;busy(false);if(!map)$('pick-map').disabled=true;journeyTools?.refresh();}}
@@ -608,7 +613,14 @@ journeyTools=createJourneyTools({map,L:window.L,getContext:()=>({search:lastSear
 });
 journeyTools.refresh();
 createInterface({notify:toast,closePanels:()=>{journeyTools.close();closeStation();showResults(false);setWeatherOpen(false);setTerrainOpen(false);}});
+driving=createDriving({context:()=>({candidates,search:lastSearch,location:gpsDenied?null:deviceLocation,busy:Boolean(active),error:$('status').classList.contains('error')?$('status').textContent:''}),
+ closePanels:()=>{stopPicking();journeyTools.close();closeStation();showResults(false);setWeatherOpen(false);setTerrainOpen(false);},
+ search:kind=>{if(active)return;chooseMode('near');$('radius').value='10';$('connector').value=kind==='fast'?'CCS2':'both';$('power').value=kind==='fast'?'50':'0';$('speed').value='all';$('unknown').checked=false;$('only-active').checked=false;$('open-24').checked=false;syncActive();$('search-form').requestSubmit();},
+ setupRoute:()=>{chooseMode('route');openSearch();$('destination').focus();},
+ focusLocation:()=>{if(map&&!gpsDenied&&deviceLocation&&Date.now()-deviceLocation.at<30000)map.setView([deviceLocation.point.lat,deviceLocation.point.lon],Math.max(14,map.getZoom()),{animate:false});},
+ focusStation:station=>{if(!map)return;markers?.eachLayer(marker=>marker.getElement?.()?.classList.toggle('marker-selected',marker.options.stationId===station.id));map.setView([station.point.lat,station.point.lon],15,{animate:false});map.panBy([0,map.getSize().y*.14],{animate:false});},
+ share:openShare,notice:toast});
 if('serviceWorker' in navigator&&window.isSecureContext)navigator.serviceWorker.register('./sw.js').catch(()=>{});
 
 // Open directly around the current location. Browsers ask for location permission if needed.
-queueMicrotask(()=>{$('search-form').requestSubmit();});
+queueMicrotask(()=>{if(driving?.active)$('drive-near').click();else $('search-form').requestSubmit();});
