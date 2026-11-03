@@ -51,7 +51,7 @@ $('origin-mode').value=storage.get('udhembare-origin-mode','gps')==='manual'?'ma
 syncOrigin();
 $('destination').value=String(storage.get('udhembare-query','')).slice(0,300);
 function text(tag,value,className){const node=document.createElement(tag);node.textContent=value;if(className)node.className=className;return node;}
-function toast(message,error=false){$('status').textContent=message;$('status').title=message;$('results-note').textContent=message;$('status').classList.toggle('error',error);}
+function toast(message,error=false){$('status').textContent=message;$('status').title=message;$('results-note').textContent=message;$('status').classList.toggle('error',error);if(error)$('results-options').open=true;}
 function showResults(open=true){if(open){journeyTools?.close();closeStation();setTerrainOpen(false);setWeatherOpen(false);}$('results-panel').hidden=!open;document.body.classList.toggle('results-open',open);$('list-open').setAttribute('aria-expanded',String(open));}
 function openSearch(){journeyTools?.close();setWeatherOpen(false);closeStation();setTerrainOpen(false);showResults(false);$('search-dialog').showModal();}
 $('search-open').addEventListener('click',openSearch);

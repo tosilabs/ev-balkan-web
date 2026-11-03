@@ -2380,7 +2380,7 @@ select,input:not([type=checkbox]) {
   border-radius:10px
 }
 .brand>span:last-child {
-  display:block!important;
+  display:block;
   font-size:10px;
   line-height:1.35;
   letter-spacing:.15px
