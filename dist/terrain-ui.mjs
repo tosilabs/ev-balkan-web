@@ -1,4 +1,4 @@
-import {TERRAIN} from './terrain.mjs?v=3.0';
+import {TERRAIN} from './terrain.mjs?v=3.0.1';
 const svgNode=(tag,attrs={})=>{const n=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,String(v));return n;};
 const label=(value,x,y,anchor='start')=>{const n=svgNode('text',{x,y,'text-anchor':anchor,fill:'#69766d','font-size':10});n.textContent=value;return n;};
 export function renderProfile(container,profile,onSelect){

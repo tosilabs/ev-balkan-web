@@ -1,4 +1,4 @@
-import {requestJson} from './services.mjs?v=3.0';
+import {requestJson} from './services.mjs?v=3.0.1';
 let cached=null;
 const MAX_AGE=10*60*1000;
 export function freshStatus(timestamp,now=Date.now()){

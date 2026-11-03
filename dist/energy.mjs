@@ -21,17 +21,13 @@ export function chargingMinutes(p,connection,from,to){
 }
 export function parseTariff(value){
  const s=String(value||'').replaceAll(',','.');if(/pa pages[eë]|\bfree\b/i.test(s))return {currency:'EUR',energy:0,minute:0,session:0,complete:true,sourceText:s};
- const unit='(EUR|€|RSD|BGN|MKD|ALL|BAM|RON|HRK|GBP|£)';
- const energy=s.match(new RegExp('(\\d+(?:\\.\\d+)?)\\s*'+unit+'\\s*\\/\\s*kWh','i'));
- if(!energy)return null;
- // Ranges, subscription prices and conditional tariffs cannot be reduced to a single guaranteed price.
  if(/\d\s*[–—-]\s*\d|member|subscription|abonim|roaming|\bfrom\b|nga\s+\d/i.test(s))return null;
- const currency={'€':'EUR','£':'GBP'}[energy[2]]||energy[2].toUpperCase();
- const minute=s.match(new RegExp('(\\d+(?:\\.\\d+)?)\\s*'+unit+'\\s*\\/\\s*(?:min|minute|minut)','i'));
- const session=s.match(new RegExp('(\\d+(?:\\.\\d+)?)\\s*'+unit+'\\s*\\/\\s*(?:session|seanc|start)','i'));
- if([minute,session].some(x=>x&&({'€':'EUR','£':'GBP'}[x[2]]||x[2].toUpperCase())!==currency))return null;
- const extraUnparsed=/park|idle|vat|tvsh/i.test(s)||(/\+|fee|tarif/i.test(s)&&!minute&&!session);
- return {currency,energy:Number(energy[1]),minute:minute?Number(minute[1]):0,session:session?Number(session[1]):0,complete:!extraUnparsed,sourceText:s};
+ const unit='(EUR|€|RSD|BGN|MKD|ALL|BAM|RON|HRK|GBP|£)',read=suffix=>s.match(new RegExp('(\\d+(?:\\.\\d+)?)\\s*'+unit+'\\s*\\/\\s*'+suffix,'i'));
+ const energy=read('kWh'),minute=read('(?:min|minute|minut)'),hour=read('(?:hour|or[eë]|h\\b)'),session=read('(?:session|seanc|start)');
+ const first=energy||minute||hour||session;if(!first)return null;const currencyOf=x=>({'€':'EUR','£':'GBP'}[x[2]]||x[2].toUpperCase()),currency=currencyOf(first);
+ if([energy,minute,hour,session].some(x=>x&&currencyOf(x)!==currency))return null;
+ const extraUnparsed=/park|idle|vat|tvsh/i.test(s)||(/\+|fee|tarif/i.test(s)&&!minute&&!hour&&!session);
+ return {currency,energy:energy?Number(energy[1]):0,minute:minute?Number(minute[1]):hour?Number(hour[1])/60:0,session:session?Number(session[1]):0,complete:!extraUnparsed&&Boolean(energy||minute||hour),sourceText:s};
 }
 export function sessionCost(tariff,kwh,minutes){
  if(!tariff||!Number.isFinite(kwh)||kwh<0||!Number.isFinite(minutes)||minutes<0)return null;

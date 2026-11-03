@@ -1,5 +1,5 @@
-import {regionalRegistry} from './registry.mjs?v=3.0';
-import {cacheSearch,cachedSearch} from './offline.mjs?v=3.0';
+import {regionalRegistry} from './registry.mjs?v=3.0.1';
+import {cacheSearch,cachedSearch} from './offline.mjs?v=3.0.1';
 const abortError=()=>new DOMException('Kërkimi u anulua.','AbortError');
 export async function requestJson(url,{signal,method='GET',body,headers={},timeout=10000}={}){
   const controller=new AbortController(),abort=()=>controller.abort(signal?.reason??abortError());

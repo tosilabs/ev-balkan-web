@@ -1,5 +1,5 @@
-import {point} from './core.mjs?v=3.0';
-import {requestJson} from './services.mjs?v=3.0';
+import {point} from './core.mjs?v=3.0.1';
+import {requestJson} from './services.mjs?v=3.0.1';
 const engines=['https://router.project-osrm.org','https://routing.openstreetmap.de/routed-car'],cache=new Map();
 const coords=points=>points.map(p=>{const q=point(p.lat,p.lon);return `${q.lon},${q.lat}`;}).join(';');
 export async function roadRoute(points,{signal,request=requestJson,engine=null,geometry=true}={}){

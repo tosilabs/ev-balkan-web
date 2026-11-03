@@ -18,7 +18,7 @@ test('Energy and charging respect vehicle limits, cold, ascent and taper',()=>{
 });
 test('Unknown, ranged or conditional prices never become a zero-cost tariff',()=>{
  for(const text of ['', '0.4–0.6 EUR/kWh','from 0.4 EUR/kWh','0.4 EUR/kWh membership'])assert.equal(parseTariff(text),null);
- const t=parseTariff('0.4 EUR/kWh + 0.1 EUR/min + 1 EUR/session');assert.deepEqual(sessionCost(t,20,30),{amount:12,currency:'EUR',complete:true});assert.equal(parseTariff('0.4 EUR/kWh + parking').complete,false);assert.equal(sessionCost(null,20,30),null);
+ const t=parseTariff('0.4 EUR/kWh + 0.1 EUR/min + 1 EUR/session');assert.deepEqual(sessionCost(t,20,30),{amount:12,currency:'EUR',complete:true});assert.equal(parseTariff('0.4 EUR/kWh + parking').complete,false);assert.equal(sessionCost(null,20,30),null);assert.equal(sessionCost(parseTariff('2 RSD/min'),20,30).amount,60);assert.equal(sessionCost(parseTariff('6 EUR/h'),20,30).amount,3);assert.equal(parseTariff('1 EUR/session').complete,false);
 });
 test('Planner requires a feasible road chain with reserve and a real charging stop',()=>{
  const result=optimizeJourney({profile:p,stations:[station],matrix,routeKm:200});assert.equal(result.stops.length,1);assert.ok(result.soc>=15);assert.ok(result.stops[0].target>result.stops[0].arrival);assert.ok(result.cost>0);

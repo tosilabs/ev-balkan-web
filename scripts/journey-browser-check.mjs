@@ -17,7 +17,7 @@ try{
  assert.equal(await page.locator('.user-location-marker').count(),1);assert.equal(await page.locator('#journey-panel').isVisible(),false);assert.equal(await page.locator('body').evaluate(e=>e.scrollWidth<=innerWidth),true);
  await page.locator('.numbered-marker').first().click();await page.locator('#station-panel').waitFor();await page.getByText('139 km → 1 h 57 min',{exact:true}).waitFor();
  const focus=await page.locator('.marker-selected').boundingBox();assert.ok(focus.y<844*.4,'Selected station must sit above the bottom sheet');
- await page.screenshot({path:'browser-results/v3-focused-station-phone.png'});
+ console.log('VISUAL_REVIEW_PHONE:'+ (await page.screenshot({path:'browser-results/v3-focused-station-phone.png'})).toString('base64'));
  await page.locator('#station-close').click();await page.locator('#search-open').click();await page.getByRole('tab',{name:'Në rrugë'}).click();await page.locator('#destination').fill('42.1,21.5');await page.getByRole('button',{name:'Gjej karikues'}).click();await page.waitForFunction(()=>!document.body.classList.contains('busy'));
  await page.locator('#terrain-close').click();await page.locator('#journey-open').click();await page.locator('#vehicle-open').click();
  for(const [id,value] of [['capacity','80'],['soc','40'],['consumption','20'],['maxDC','150']])await page.locator('#vehicle-'+id).fill(value);
