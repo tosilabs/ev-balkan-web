@@ -26,7 +26,7 @@ import {renderWeatherRows} from './weather-ui.mjs?v=3.4';
 let weatherState=null,weatherController=null,weatherLayer=null,radarData=null,radarFetchedAt=0,radarController=null,radarLayer=null,radarCoverage=null,radarTimer=null;
 import {stationMap} from './mini-map.mjs?v=3.4';
 let miniMapDisposers=[];
-let candidates=[],lastSearch=null,routeState=null,terrainController=null,terrainMarker=null,chartControl=null,pendingReplay=null;
+let candidates=[],lastSearch=null,navigationSearch=null,routeState=null,terrainController=null,terrainMarker=null,chartControl=null,pendingReplay=null;
 import {migrateLegacyStorage} from './storage.mjs?v=3.4';
 migrateLegacyStorage();
 const $=id=>document.getElementById(id);
@@ -571,7 +571,7 @@ $('search-form').addEventListener('submit',async event=>{
   storage.set('udhembare-settings-v2',options);if(query)storage.set('udhembare-query',query);
   if($('search-dialog').open)$('search-dialog').close();showResults(false);viewingRadius=options.radius;
   $('radius-badge').textContent=options.radius<1?`${Math.round(options.radius*1000)} m`:`${options.radius} km`;$('filter-badge').textContent=options.connector==='all'?'Të gjithë':options.connector==='both'?'Për Audi':options.connector;
-  closeStation();manualTravelOrigin=null;resetTerrain();const controller=new AbortController();active=controller;busy(true);savedView=false;lastSearch=null;candidates=[];stations=[];shown=0;clearMap();$('results').replaceChildren();$('load-more').hidden=true;$('result-count').hidden=true;$('results-title').textContent='Duke gjetur ndalesën tënde…';
+  closeStation();manualTravelOrigin=null;resetTerrain();const controller=new AbortController();active=controller;busy(true);savedView=false;lastSearch=null;navigationSearch=null;candidates=[];stations=[];shown=0;clearMap();$('results').replaceChildren();$('load-more').hidden=true;$('result-count').hidden=true;$('results-title').textContent='Duke gjetur ndalesën tënde…';
   const requestMode=mode;
   try{
     let center,start=null,line=null,routeKm=null,routeDuration=null;
@@ -586,7 +586,7 @@ $('search-form').addEventListener('submit',async event=>{
      const r=replay?.line?{line:replay.line,km:replay.routeKm,duration:replay.routeDuration}:await route(start,center,controller.signal);line=r.line;routeKm=r.km;routeDuration=r.duration;
      if(controller.signal.aborted)return;prepareTerrain(line,routeKm,center,replay?.terrain);
     }
-    if(controller.signal.aborted)return;prepareRouteWeather(line,center,routeDuration);
+    if(controller.signal.aborted)return;navigationSearch={line,center,start,requestMode,routeKm,routeDuration};navigation?.refresh();prepareRouteWeather(line,center,routeDuration);
     const historyId=rememberSearch({mode:requestMode,query:requestMode==='near'?'':replay?.query||query,origin:requestMode==='route'?(replay?.origin||($('origin-mode').value==='manual'?originQuery:`${start.lat.toFixed(4)}, ${start.lon.toFixed(4)}`)):'',center,start,line,routeKm,routeDuration,options,terrain:routeState?.terrain});
     if(routeState)routeState.historyId=historyId;
 
@@ -626,7 +626,7 @@ driving=createDriving({context:()=>({candidates,search:lastSearch,location:gpsDe
  focusLocation:()=>{if(map&&!gpsDenied&&deviceLocation&&Date.now()-deviceLocation.at<30000)map.setView([deviceLocation.point.lat,deviceLocation.point.lon],Math.max(14,map.getZoom()),{animate:false});},
  focusStation:station=>{if(!map)return;markers?.eachLayer(marker=>marker.getElement?.()?.classList.toggle('marker-selected',marker.options.stationId===station.id));map.setView([station.point.lat,station.point.lon],15,{animate:false});map.panBy([0,map.getSize().y*.14],{animate:false});},
  share:openShare,notice:toast,navigate:station=>navigation?.start(station.point,station.name)});
-navigation=createNavigation({context:()=>({search:lastSearch,location:gpsDenied?null:deviceLocation,busy:Boolean(active)}),getFix:async signal=>{await locate(signal,{maximumAge:0});return deviceLocation;},closePanels:()=>{if(driving?.active)driving.exit();journeyTools.close();closeStation();showResults(false);setTerrainOpen(false);setWeatherOpen(false);}});
+navigation=createNavigation({context:()=>({search:lastSearch||navigationSearch,location:gpsDenied?null:deviceLocation,busy:Boolean(active)}),getFix:async signal=>{if(!signal.aborted&&!gpsDenied&&deviceLocation&&Date.now()-deviceLocation.at<5000&&Number.isFinite(deviceLocation.accuracy)&&deviceLocation.accuracy<=80)return deviceLocation;await locate(signal,{maximumAge:10000});return deviceLocation;},closePanels:()=>{if(driving?.active)driving.exit();journeyTools.close();closeStation();showResults(false);setTerrainOpen(false);setWeatherOpen(false);}});
 $('navigate-route').addEventListener('click',()=>navigation.route());$('terrain-navigate').addEventListener('click',()=>navigation.route());navigation.refresh();
 if('serviceWorker' in navigator&&window.isSecureContext)navigator.serviceWorker.register('./sw.js').catch(()=>{});
 
