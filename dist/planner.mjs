@@ -1,4 +1,4 @@
-import {compatiblePower,energyForKm,chargingMinutes,parseTariff,sessionCost,terrainBetween,weatherBetween} from './energy.mjs?v=3.0.1';
+import {compatiblePower,energyForKm,chargingMinutes,parseTariff,sessionCost,terrainBetween,weatherBetween} from './energy.mjs?v=3.1';
 export function planningCandidates(stations,p,{limit=16,excluded=[],isOffline=()=>false}={}){
  const usable=stations.filter(s=>!excluded.includes(s.id)&&!isOffline(s)&&Number.isFinite(s.routePosition)&&compatiblePower(s,p)).sort((a,b)=>a.routePosition-b.routePosition);
  if(usable.length<=limit)return usable;
@@ -11,14 +11,13 @@ export function planningCandidates(stations,p,{limit=16,excluded=[],isOffline=()
 export function optimizeJourney({profile:p,stations,matrix,routeKm,terrain=null,weather=[],mode='time',budget=null}){
  if(!['time','cost','reserve'].includes(mode))throw Error('Mënyra e planifikimit nuk është e vlefshme.');
  if(p.soc<p.reserve)throw Error('Bateria aktuale është nën rezervën e zgjedhur. Ul rezervën vetëm nëse e ke vlerësuar vetë situatën.');
- const nodes=[null,...stations,null],n=nodes.length;if(matrix.distances?.length!==n||matrix.durations?.length!==n)throw Error('Mungon matrica rrugore.');
+ const nodes=[null,...stations,null],n=nodes.length;if(![matrix.distances,matrix.durations].every(m=>Array.isArray(m)&&m.length===n&&m.every(row=>Array.isArray(row)&&row.length===n)))throw Error('Mungon matrica rrugore.');
  const tariffs=stations.map(s=>parseTariff(s.price)),currencies=[...new Set(tariffs.filter(t=>t?.complete).map(t=>t.currency))];
- const currency=currencies.length===1?currencies[0]:null;
  if((mode==='cost'||budget!==null)&&currencies.length>1)throw Error('Tarifat kanë valuta të ndryshme. Zgjidh planifikimin sipas kohës.');
  const progress=i=>i===0?0:i===n-1?routeKm:stations[i-1].routePosition;
  const labels=Array.from({length:n},()=>[]);labels[0]=[{soc:p.soc,minutes:0,cost:0,costKnown:true,currency:null,distance:0,energy:0,stops:[],path:[0]}];let best=null;
  const score=x=>mode==='cost'?x.costKnown?x.cost:Infinity:mode==='reserve'?x.minutes+Math.max(0,30-x.soc)*3:x.minutes;
- const push=(index,label)=>{const list=labels[index];if(list.some(x=>Math.floor(x.soc)>=Math.floor(label.soc)&&x.minutes<=label.minutes&&(!label.costKnown||x.costKnown&&x.currency===label.currency&&x.cost<=label.cost)))return;list.push(label);list.sort((a,b)=>score(a)-score(b));if(list.length>240)list.length=240;};
+ const push=(index,label)=>{const list=labels[index];if(list.some(x=>x.soc+1e-9>=label.soc&&x.minutes<=label.minutes&&(!label.costKnown||x.costKnown&&x.currency===label.currency&&x.cost<=label.cost)))return;list.push(label);list.sort((a,b)=>score(a)-score(b));if(list.length>240)list.length=240;};
  for(let i=0;i<n-1;i++)for(const current of [...labels[i]])for(let j=i+1;j<n;j++){
   const meters=matrix.distances[i]?.[j],seconds=matrix.durations[i]?.[j];if(!Number.isFinite(meters)||meters<0||!Number.isFinite(seconds)||seconds<0)continue;
   const extra=terrainBetween(terrain,progress(i),progress(j)),used=energyForKm(meters/1000,p,{...extra,temperature:p.temperature??weatherBetween(weather,progress(i),progress(j))}),arrival=current.soc-used/p.capacity*100;
@@ -33,18 +32,28 @@ export function optimizeJourney({profile:p,stations,matrix,routeKm,terrain=null,
   }
  }
  if(!best)throw Error(mode==='cost'?'Nuk u gjet plan me tarifa të krahasueshme dhe rezervën e zgjedhur. Provo sipas kohës.':'Nuk u gjet plan i verifikuar me këta karikues dhe këtë rezervë. Zgjero korridorin ose kontrollo të dhënat e veturës.');
- return {...best,currency:best.costKnown?best.currency:null,analyzed:stations.length,mode,estimated:true};
+ return {...best,currency:best.costKnown?best.currency:null,analyzed:stations.length,mode,budget,estimated:true};
 }
 export function revalidateJourney(plan,p,road,terrain,routeKm,weather=[]){
- if(road.legs.length!==plan.stops.length+1)throw Error('Segmentet reale të planit nuk u kthyen.');
- let soc=p.soc,minutes=0,distance=0,previous=0;
+ if(!Array.isArray(road.legs)||road.legs.length!==plan.stops.length+1)throw Error('Segmentet reale të planit nuk u kthyen.');
+ let soc=p.soc,minutes=0,distance=0,energy=0,previous=0,cost=0,costKnown=true,currency=null;
+ const stops=[];
  for(let i=0;i<road.legs.length;i++){
   const leg=road.legs[i],next=i<plan.stops.length?plan.stops[i].station.routePosition:routeKm;
-  if(!Number.isFinite(leg.distance)||!Number.isFinite(leg.duration))throw Error('Segmenti real është i paplotë.');
-  soc-=energyForKm(leg.distance/1000,p,{...terrainBetween(terrain,previous,next),temperature:p.temperature??weatherBetween(weather,previous,next)})/p.capacity*100;
-  if(soc+1e-6<p.reserve)throw Error('Rruga reale cenon rezervën. Plani nuk është aktivizuar; provo alternativa.');
-  if(i<plan.stops.length){const s=plan.stops[i];if(Math.abs(s.arrival-soc)>1)throw Error('Rruga ndryshoi ndaj matricës. Rillogarit planin.');soc=s.target;minutes+=s.chargeMinutes+4;}
+  if(!Number.isFinite(leg.distance)||leg.distance<0||!Number.isFinite(leg.duration)||leg.duration<0)throw Error('Segmenti real është i paplotë.');
+  const used=energyForKm(leg.distance/1000,p,{...terrainBetween(terrain,previous,next),temperature:p.temperature??weatherBetween(weather,previous,next)});
+  energy+=used;soc-=used/p.capacity*100;
+  if(!Number.isFinite(soc)||soc+1e-6<p.reserve)throw Error('Rruga reale cenon rezervën. Plani nuk është aktivizuar; provo alternativa.');
+  if(i<plan.stops.length){
+   const saved=plan.stops[i];if(saved.target<soc)throw Error('Rruga ndryshoi ndaj matricës. Rillogarit planin.');
+   const chargeMinutes=chargingMinutes(p,saved.connection,soc,saved.target),gridEnergy=p.capacity*(saved.target-soc)/100/p.efficiency;
+   const price=sessionCost(parseTariff(saved.station.price),gridEnergy,chargeMinutes);
+   costKnown=costKnown&&Boolean(price?.complete)&&(!currency||currency===price.currency);
+   cost+=price?.amount||0;currency=currency||price?.currency||null;
+   stops.push({...saved,arrival:soc,chargeMinutes,energy:gridEnergy,cost:price});soc=saved.target;minutes+=chargeMinutes+4;
+  }
   minutes+=leg.duration/60;distance+=leg.distance/1000;previous=next;
  }
- return {...plan,soc,minutes,distance,line:road.line,verifiedAt:new Date().toISOString()};
+ if(plan.budget!=null&&(!costKnown||cost>plan.budget+1e-8))throw Error('Rruga reale tejkalon buxhetin ose ka tarifa të panjohura. Rillogarit planin.');
+ return {...plan,stops,soc,minutes,distance,energy,cost,costKnown,currency:costKnown?currency:null,line:road.line,verifiedAt:new Date().toISOString()};
 }

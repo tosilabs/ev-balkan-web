@@ -10,6 +10,7 @@ env:
   BOOTSTRAP_DATA_URL: https://tosilabs.github.io/ev-balkan-web/
 permissions:
   contents: read
+  issues: read
 concurrency:
   group: pages
   cancel-in-progress: true
@@ -65,6 +66,8 @@ jobs:
       - name: Refresh official operator links and visual identities
         run: python3 scripts/update-providers.py
       - name: Import approved community reports
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: node scripts/import-community.mjs
       - name: Merge official registries and write source catalogue
         run: node scripts/merge-public-sources.mjs

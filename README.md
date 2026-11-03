@@ -182,3 +182,7 @@ Indeksi `registry-index.json` ngarkon vetëm skedarët gjeografikë të nevojsh�
 Raportet/vlerësimet personale ruhen lokalisht. Dërgimi publik hap një draft të rishikueshëm në GitHub; nuk kryen dërgim automatik. Kontribuesi konfirmon CC BY 4.0 dhe mund të bashkëngjitë foto në GitHub. Vetëm çështjet me etiketën `station-approved` importohen nga `scripts/import-community.mjs`; mirëmbajtësi krijon etiketën dhe miraton raportet. Raporti historik nuk shndërrohet në status të lirë në kohë reale. Stacionet e reja të miratuara janë burim i veçantë me ID të çështjes dhe atribuim.
 
 Udhëtimi dhe stacionet mund të ruhen në IndexedDB. Kopja offline shfaq datën dhe kufizimet; harta e re, statuset dhe llogaritja e një rruge të re kërkojnë rrjet. Nuk bëhet shkarkim masiv i pllakave OSM. Ndjekja e stacioneve me burim aktual kontrollon çdo 2 minuta vetëm ndërsa faqja është në plan të parë. Pagesat, rezervimet dhe komandat e nisjes së karikimit kërkojnë marrëveshje/API operatori dhe nuk simulohen si transaksione reale.
+
+### Revizion i ndërfaqes dhe besueshmërisë (v3.1)
+
+Menu më e qartë, filtra shtesë të grupuar, kontrolle më të mëdha dhe përdorim me tastierë. Korrigjohen tarifat e paqarta/falas, rillogaritja e kostos në rrugën reale, planet e vjetra pas dështimit, rikthimi i kandidatëve të përjashtuar, anulimi i kërkesave të ndara dhe përzierja e versioneve të regjistrit. Raportet e ndryshuara pas miratimit kërkojnë miratim të ri. Detajet dhe kufijtë e kontrollit janë te [REVIZIONI_3_1.md](docs/REVIZIONI_3_1.md).

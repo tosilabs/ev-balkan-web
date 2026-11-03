@@ -118,11 +118,11 @@ try{
  await page.locator('#radar-toggle').uncheck();assert.equal(await page.locator('#radar-controls').isVisible(),false);await page.locator('#weather-close').click();
 
  const callsBeforeReplay=elevationCalls;
- await page.locator('#history-open').click();assert.ok(await page.locator('.history-item').count()>=2);
+ await page.locator('#more-open').click();await page.locator('#history-open').click();assert.ok(await page.locator('.history-item').count()>=2);
  await page.locator('.history-item>button:first-child').filter({hasText:'Itinerar'}).first().click();await waitSearch(page);
  assert.equal(elevationCalls,callsBeforeReplay,'Saved elevation should reopen without another DEM request');assert.match(await page.locator('#terrain-status').innerText(),/profil i ruajtur/);
  await page.locator('#terrain-close').click();await page.reload({waitUntil:'networkidle'});await waitSearch(page);
- await page.locator('#history-open').click();await page.locator('.history-item>button:first-child').filter({hasText:'Itinerar'}).first().click();await waitSearch(page);assert.match(await page.locator('#terrain-status').innerText(),/profil i ruajtur/);assert.equal(elevationCalls,callsBeforeReplay);
+ await page.locator('#more-open').click();await page.locator('#history-open').click();await page.locator('.history-item>button:first-child').filter({hasText:'Itinerar'}).first().click();await waitSearch(page);assert.match(await page.locator('#terrain-status').innerText(),/profil i ruajtur/);assert.equal(elevationCalls,callsBeforeReplay);
  await page.locator('#list-open').click();
  await page.getByRole('heading',{name:'Karikues përgjatë rrugës'}).waitFor();
  await page.getByRole('heading',{name:'Karikues prove'}).waitFor();
@@ -166,7 +166,7 @@ try{
  await livePage.locator('#results-close').click();await searchPlace(livePage,'place');
  assert.ok(Number(await livePage.locator('#result-count').innerText())>0);
  await livePage.screenshot({path:'browser-results/real-charging-fullscreen.png'});
- await livePage.locator('#help-open').click();await livePage.locator('#sources-open').click();
+ await livePage.locator('#more-open').click();await livePage.locator('#help-open').click();await livePage.locator('#sources-open').click();
  await livePage.getByRole('heading',{name:'MYFAH · regjistri kombëtar i Greqisë'}).waitFor();
  await livePage.locator('[data-close="sources-dialog"]').click();await livePage.locator('[data-close="help-dialog"]').click();
  await live.close();

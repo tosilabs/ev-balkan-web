@@ -1,27 +1,28 @@
-import {createJourneyTools} from './journey-ui.mjs?v=3.0.1';
+import {createInterface} from './interface.mjs?v=3.1';
+import {createJourneyTools} from './journey-ui.mjs?v=3.1';
 let journeyTools=null;
-import {point,coordinates,distance,bounds,settings,parseStations,validStationId,destinationUrl,shareData,navigationUrl} from './core.mjs?v=3.0.1';
-import {localPlaces} from './cities.mjs?v=3.0.1';
-import {requestJson as json,loadCharging} from './services.mjs?v=3.0.1';
-import {externalLocationUrl,bestClass,webUrl,setProviderCatalog} from './details.mjs?v=3.0.1';
-import {photoSection} from './photos.mjs?v=3.0.1';
-import {finesLiveSection,showSources} from './sources-ui.mjs?v=3.0.1';
-import {checkOperating,currentOperating,workingOnly} from './operating.mjs?v=3.0.1';
-import {loadTerrain,coloredPieces,TERRAIN} from './terrain.mjs?v=3.0.1';
-import {renderProfile} from './terrain-ui.mjs?v=3.0.1';
-import {cleanHistory,cleanHistoryEntry,addHistory,encodeHistory,historyLabel} from './history.mjs?v=3.0.1';
-import {stationTravel,formatTravel} from './travel.mjs?v=3.0.1';
-import {createLocationLayer,locationFix} from './location.mjs?v=3.0.1';
+import {point,coordinates,distance,bounds,settings,parseStations,validStationId,destinationUrl,shareData,navigationUrl} from './core.mjs?v=3.1';
+import {localPlaces} from './cities.mjs?v=3.1';
+import {requestJson as json,loadCharging} from './services.mjs?v=3.1';
+import {externalLocationUrl,bestClass,webUrl,setProviderCatalog} from './details.mjs?v=3.1';
+import {photoSection} from './photos.mjs?v=3.1';
+import {finesLiveSection,showSources} from './sources-ui.mjs?v=3.1';
+import {checkOperating,currentOperating,workingOnly} from './operating.mjs?v=3.1';
+import {loadTerrain,coloredPieces,TERRAIN} from './terrain.mjs?v=3.1';
+import {renderProfile} from './terrain-ui.mjs?v=3.1';
+import {cleanHistory,cleanHistoryEntry,addHistory,encodeHistory,historyLabel} from './history.mjs?v=3.1';
+import {stationTravel,formatTravel} from './travel.mjs?v=3.1';
+import {createLocationLayer,locationFix} from './location.mjs?v=3.1';
 let locationLayer=null,locationWatch=null;
-import {initBasemap} from './basemap.mjs?v=3.0.1';
+import {initBasemap} from './basemap.mjs?v=3.1';
 let detailStation=null,stationFromList=false,travelController=null,manualTravelOrigin=null,deviceLocation=null,gpsDenied=false;
-import {routeWeatherPoints,fetchWeather,selectForecast,radarFrames,radarTile} from './weather.mjs?v=3.0.1';
-import {renderWeatherRows} from './weather-ui.mjs?v=3.0.1';
+import {routeWeatherPoints,fetchWeather,selectForecast,radarFrames,radarTile} from './weather.mjs?v=3.1';
+import {renderWeatherRows} from './weather-ui.mjs?v=3.1';
 let weatherState=null,weatherController=null,weatherLayer=null,radarData=null,radarFetchedAt=0,radarController=null,radarLayer=null,radarCoverage=null,radarTimer=null;
-import {stationMap} from './mini-map.mjs?v=3.0.1';
+import {stationMap} from './mini-map.mjs?v=3.1';
 let miniMapDisposers=[];
 let candidates=[],lastSearch=null,routeState=null,terrainController=null,terrainMarker=null,chartControl=null,pendingReplay=null;
-import {migrateLegacyStorage} from './storage.mjs?v=3.0.1';
+import {migrateLegacyStorage} from './storage.mjs?v=3.1';
 migrateLegacyStorage();
 const $=id=>document.getElementById(id);
 const providerReady=json(new URL('./data/providers.json',import.meta.url).href,{timeout:4000}).catch(()=>json(new URL('./providers.json',import.meta.url).href,{timeout:4000})).then(setProviderCatalog).catch(()=>{});
@@ -376,7 +377,7 @@ $('copy-destination').addEventListener('click',async()=>{
   try{await navigator.clipboard.writeText(value);$('share-status').textContent='Lokacioni u kopjua. Mund ta ndash ose ta kërkosh në myAudi.';}
   catch{document.querySelector('#share-dialog textarea')?.remove();const area=document.createElement('textarea');area.readOnly=true;area.value=value;area.setAttribute('aria-label','Lokacioni për kopjim');area.style.width='100%';$('share-dialog').append(area);area.focus();area.select();$('share-status').textContent='Kopjo tekstin e përzgjedhur manualisht.';}
 });
-function externalLink(label,url){const a=text('a',label);a.href=url;a.target='_blank';a.rel='noopener noreferrer';return a;}
+function externalLink(label,url){const a=text('a',label);const safe=/^(?:tel:[+0-9]+|mailto:[^\s]+)$/i.test(String(url))?url:webUrl(url);if(safe)a.href=safe;else a.setAttribute('aria-disabled','true');a.target='_blank';a.rel='noopener noreferrer';return a;}
 function providerPanel(station){
  const provider=station.info?.provider||{},section=document.createElement('section');section.className='provider-panel';section.setAttribute('aria-label','Operatori dhe aplikacionet');
  const identity=document.createElement('div');identity.className='provider-identity';
@@ -438,8 +439,10 @@ function locationDetails(station){
  details.append(body);return details;
 }
 function closeStation(restore=false){
+ const wasOpen=!$('station-panel').hidden;let returnMarker=null;if(restore&&wasOpen)markers?.eachLayer(marker=>{if(marker.options.stationId===detailStation?.id)returnMarker=marker.getElement?.();});
+ journeyTools?.closeStation();
  travelController?.abort();travelController=null;markers?.eachLayer(marker=>marker.getElement?.()?.classList.remove('marker-selected'));$('station-panel').hidden=true;document.body.classList.remove('station-open');
- if(restore&&stationFromList)showResults(true);
+ if(restore&&wasOpen){if(stationFromList)showResults(true);(stationFromList?$('list-open'):returnMarker||$('list-open')).focus({preventScroll:true});}
 }
 function syncStationCondition(){
  if(!detailStation)return;const state=currentOperating(detailStation);$('station-condition').replaceChildren(text('span',state.label,'tag operating-status operating-'+state.key));
@@ -595,15 +598,16 @@ $('search-form').addEventListener('submit',async event=>{
     if(error.locationRecovery){openSearch();queueMicrotask(()=>$(requestMode==='route'?'origin':'destination').focus());}
     $('results-title').textContent=error.locationRecovery?'Cakto lokacionin manualisht':'Provo një kërkim tjetër';
     toast(error.name==='AbortError'?'Kërkimi u anulua.':error.name==='TimeoutError'?'Shërbimi vonoi përgjigjen. Provo përsëri.':error.message||'Kërkimi dështoi. Kontrollo internetin dhe provo përsëri.',error.name!=='AbortError');
-  }finally{if(active===controller){active=null;busy(false);if(!map)$('pick-map').disabled=true;}}
+  }finally{if(active===controller){active=null;busy(false);if(!map)$('pick-map').disabled=true;journeyTools?.refresh();}}
 });
-journeyTools=createJourneyTools({map,L:window.L,getContext:()=>({search:lastSearch,candidates,stations,terrain:routeState?.terrain,weather:weatherState?.forecast,activeOnly:$('only-active').checked,radius:Number($('radius').value)}),openStation,notice:toast,
+journeyTools=createJourneyTools({map,L:window.L,getContext:()=>({search:lastSearch,candidates,stations,terrain:routeState?.terrain,weather:weatherState?.forecast,activeOnly:$('only-active').checked,radius:Number($('radius').value),busy:Boolean(active)}),openStation,notice:toast,
  closePanels:()=>{closeStation();showResults(false);setTerrainOpen(false);setWeatherOpen(false);},
  openArea:p=>{if(active)return;chooseMode('place');$('destination').value=`${p.lat.toFixed(6)},${p.lon.toFixed(6)}`;$('radius').value='10';$('search-form').requestSubmit();},
  fitAll:()=>{if(!map)return;journeyTools?.close();closeStation();showResults(false);setTerrainOpen(false);setWeatherOpen(false);if(lastSearch?.line)map.fitBounds(L.latLngBounds(lastSearch.line.map(p=>[p.lat,p.lon])),{padding:[35,120],maxZoom:15});else if(radiusLayer)map.fitBounds(radiusLayer.getBounds(),{padding:[35,120],maxZoom:15});},
  filterReset:()=>{$('connector').value='all';$('power').value='0';$('speed').value='all';$('radius').value='10';$('unknown').checked=true;$('only-active').checked=false;$('open-24').checked=false;syncActive();$('search-form').requestSubmit();}
 });
 journeyTools.refresh();
+createInterface({notify:toast,closePanels:()=>{journeyTools.close();closeStation();showResults(false);setWeatherOpen(false);setTerrainOpen(false);}});
 if('serviceWorker' in navigator&&window.isSecureContext)navigator.serviceWorker.register('./sw.js').catch(()=>{});
 
 // Open directly around the current location. Browsers ask for location permission if needed.

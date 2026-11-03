@@ -1,4 +1,4 @@
-import {requestJson} from './services.mjs?v=3.0.1';
+import {requestJson,withAbort} from './services.mjs?v=3.1';
 let cached=null;
 const MAX_AGE=10*60*1000;
 export function freshStatus(timestamp,now=Date.now()){
@@ -16,13 +16,18 @@ export function availabilitySummary(data,now=Date.now()){
  return {fresh:freshStatus(data.generated_at,now),generatedAt:data.generated_at||'',total:connectors.length,available:states.filter(s=>s.key==='free').length,working:states.filter(s=>['free','busy'].includes(s.key)).length,connectors};
 }
 export async function finesSnapshot({signal,request=requestJson,now=Date.now()}={}){
+ if(signal?.aborted)throw signal.reason||new DOMException('Anuluar','AbortError');
  if(!cached||now-cached.attemptedAt>=120000){
-  cached={attemptedAt:now,promise:request('https://public.finescharging.com/v1/live.json',{signal,timeout:8000}).then(data=>{
-   if(!Array.isArray(data.locations))throw Error('Përgjigje e pavlefshme nga operatori.');return data;
-  })};
+  const entry={attemptedAt:now,promise:null};
+  entry.promise=Promise.resolve().then(()=>request('https://public.finescharging.com/v1/live.json',{timeout:8000})).then(data=>{
+   if(!Array.isArray(data.locations))throw Error('Përgjigje e pavlefshme nga operatori.');
+   return data;
+  }).catch(error=>{if(cached===entry)cached=null;throw error;});
+  cached=entry;
  }
- return cached.promise;
+ return withAbort(cached.promise,signal);
 }
+
 export async function finesLocation(id,options={}){
  const data=await finesSnapshot(options),location=data.locations.find(l=>String(l.location_id)===String(id));
  if(!location)throw Error('Lokacioni nuk u gjet në përgjigjen e operatorit.');

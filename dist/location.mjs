@@ -1,4 +1,4 @@
-import {point} from './core.mjs?v=3.0.1';
+import {point} from './core.mjs?v=3.1';
 export function locationFix(position,now=Date.now()){
  const p=point(position.coords.latitude,position.coords.longitude),accuracy=position.coords.accuracy;
  return {point:p,accuracy:typeof accuracy==='number'&&Number.isFinite(accuracy)&&accuracy>=0?accuracy:null,at:typeof position.timestamp==='number'&&Number.isFinite(position.timestamp)&&position.timestamp>0?Math.min(now,position.timestamp):now};
