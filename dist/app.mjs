@@ -1,33 +1,35 @@
-import {createNavigation} from './navigation.mjs?v=3.4';
+import {createTraffic} from './traffic.mjs?v=3.5';
+let traffic=null;
+import {createNavigation} from './navigation.mjs?v=3.5';
 let navigation=null;
-import {createKeyVaultUI} from './key-vault-ui.mjs?v=3.4';
-import {createInterface} from './interface.mjs?v=3.4';
-import {createDriving} from './driving.mjs?v=3.4';
+import {createKeyVaultUI} from './key-vault-ui.mjs?v=3.5';
+import {createInterface} from './interface.mjs?v=3.5';
+import {createDriving} from './driving.mjs?v=3.5';
 let driving=null;
-import {createJourneyTools} from './journey-ui.mjs?v=3.4';
+import {createJourneyTools} from './journey-ui.mjs?v=3.5';
 let journeyTools=null;
-import {point,coordinates,distance,bounds,settings,parseStations,validStationId,destinationUrl,shareData,navigationUrl} from './core.mjs?v=3.4';
-import {localPlaces} from './cities.mjs?v=3.4';
-import {requestJson as json,loadCharging} from './services.mjs?v=3.4';
-import {externalLocationUrl,bestClass,webUrl,setProviderCatalog} from './details.mjs?v=3.4';
-import {photoSection} from './photos.mjs?v=3.4';
-import {finesLiveSection,showSources} from './sources-ui.mjs?v=3.4';
-import {checkOperating,currentOperating,workingOnly} from './operating.mjs?v=3.4';
-import {loadTerrain,coloredPieces,TERRAIN} from './terrain.mjs?v=3.4';
-import {renderProfile} from './terrain-ui.mjs?v=3.4';
-import {cleanHistory,cleanHistoryEntry,addHistory,encodeHistory,historyLabel} from './history.mjs?v=3.4';
-import {stationTravel,formatTravel} from './travel.mjs?v=3.4';
-import {createLocationLayer,locationFix} from './location.mjs?v=3.4';
+import {point,coordinates,distance,bounds,settings,parseStations,validStationId,destinationUrl,shareData,navigationUrl} from './core.mjs?v=3.5';
+import {localPlaces} from './cities.mjs?v=3.5';
+import {requestJson as json,loadCharging} from './services.mjs?v=3.5';
+import {externalLocationUrl,bestClass,webUrl,setProviderCatalog} from './details.mjs?v=3.5';
+import {photoSection} from './photos.mjs?v=3.5';
+import {finesLiveSection,showSources} from './sources-ui.mjs?v=3.5';
+import {checkOperating,currentOperating,workingOnly} from './operating.mjs?v=3.5';
+import {loadTerrain,coloredPieces,TERRAIN} from './terrain.mjs?v=3.5';
+import {renderProfile} from './terrain-ui.mjs?v=3.5';
+import {cleanHistory,cleanHistoryEntry,addHistory,encodeHistory,historyLabel} from './history.mjs?v=3.5';
+import {stationTravel,formatTravel} from './travel.mjs?v=3.5';
+import {createLocationLayer,locationFix} from './location.mjs?v=3.5';
 let locationLayer=null,locationWatch=null;
-import {initBasemap} from './basemap.mjs?v=3.4';
+import {initBasemap} from './basemap.mjs?v=3.5';
 let detailStation=null,stationFromList=false,travelController=null,manualTravelOrigin=null,deviceLocation=null,gpsDenied=false;
-import {routeWeatherPoints,fetchWeather,selectForecast,radarFrames,radarTile} from './weather.mjs?v=3.4';
-import {renderWeatherRows} from './weather-ui.mjs?v=3.4';
+import {routeWeatherPoints,fetchWeather,selectForecast,radarFrames,radarTile} from './weather.mjs?v=3.5';
+import {renderWeatherRows} from './weather-ui.mjs?v=3.5';
 let weatherState=null,weatherController=null,weatherLayer=null,radarData=null,radarFetchedAt=0,radarController=null,radarLayer=null,radarCoverage=null,radarTimer=null;
-import {stationMap} from './mini-map.mjs?v=3.4';
+import {stationMap} from './mini-map.mjs?v=3.5';
 let miniMapDisposers=[];
 let candidates=[],lastSearch=null,navigationSearch=null,routeState=null,terrainController=null,terrainMarker=null,chartControl=null,pendingReplay=null;
-import {migrateLegacyStorage} from './storage.mjs?v=3.4';
+import {migrateLegacyStorage} from './storage.mjs?v=3.5';
 migrateLegacyStorage();
 const $=id=>document.getElementById(id);
 const providerReady=json(new URL('./data/providers.json',import.meta.url).href,{timeout:4000}).catch(()=>json(new URL('./providers.json',import.meta.url).href,{timeout:4000})).then(setProviderCatalog).catch(()=>{});
@@ -126,7 +128,7 @@ function locationRecovery(error,requestMode){
  const failure=Error(error.message);failure.locationRecovery=true;throw failure;
 }
 function updateDevicePosition(pos){
- try{deviceLocation=locationLayer?locationLayer.update(pos):locationFix(pos);gpsDenied=false;$('locate-me').title='Vendndodhja ime · saktësia '+(deviceLocation.accuracy===null?'e panjohur':'±'+Math.round(deviceLocation.accuracy)+' m');driving?.position();navigation?.position(deviceLocation);return deviceLocation.point;}catch{return null;}
+ try{deviceLocation=locationLayer?locationLayer.update(pos):locationFix(pos);gpsDenied=false;$('locate-me').title='Vendndodhja ime · saktësia '+(deviceLocation.accuracy===null?'e panjohur':'±'+Math.round(deviceLocation.accuracy)+' m');driving?.position();navigation?.position(deviceLocation);traffic?.position();return deviceLocation.point;}catch{return null;}
 }
 function startLocationWatch(){
  if(locationWatch!==null||document.hidden||!navigator.geolocation?.watchPosition)return;
@@ -617,7 +619,7 @@ journeyTools=createJourneyTools({map,L:window.L,getContext:()=>({search:lastSear
  filterReset:()=>{$('connector').value='all';$('power').value='0';$('speed').value='all';$('radius').value='10';$('unknown').checked=true;$('only-active').checked=false;$('open-24').checked=false;syncActive();$('search-form').requestSubmit();}
 });
 journeyTools.refresh();
-createKeyVaultUI();
+const personalKeys=createKeyVaultUI();
 createInterface({notify:toast,closePanels:()=>{journeyTools.close();closeStation();showResults(false);setWeatherOpen(false);setTerrainOpen(false);}});
 driving=createDriving({context:()=>({candidates,search:lastSearch,location:gpsDenied?null:deviceLocation,busy:Boolean(active),error:$('status').classList.contains('error')?$('status').textContent:''}),
  closePanels:()=>{stopPicking();journeyTools.close();closeStation();showResults(false);setWeatherOpen(false);setTerrainOpen(false);},
@@ -626,7 +628,8 @@ driving=createDriving({context:()=>({candidates,search:lastSearch,location:gpsDe
  focusLocation:()=>{if(map&&!gpsDenied&&deviceLocation&&Date.now()-deviceLocation.at<30000)map.setView([deviceLocation.point.lat,deviceLocation.point.lon],Math.max(14,map.getZoom()),{animate:false});},
  focusStation:station=>{if(!map)return;markers?.eachLayer(marker=>marker.getElement?.()?.classList.toggle('marker-selected',marker.options.stationId===station.id));map.setView([station.point.lat,station.point.lon],15,{animate:false});map.panBy([0,map.getSize().y*.14],{animate:false});},
  share:openShare,notice:toast,navigate:station=>navigation?.start(station.point,station.name)});
-navigation=createNavigation({context:()=>({search:lastSearch||navigationSearch,location:gpsDenied?null:deviceLocation,busy:Boolean(active)}),getFix:async signal=>{if(!signal.aborted&&!gpsDenied&&deviceLocation&&Date.now()-deviceLocation.at<5000&&Number.isFinite(deviceLocation.accuracy)&&deviceLocation.accuracy<=80)return deviceLocation;await locate(signal,{maximumAge:10000});return deviceLocation;},closePanels:()=>{if(driving?.active)driving.exit();journeyTools.close();closeStation();showResults(false);setTerrainOpen(false);setWeatherOpen(false);}});
+navigation=createNavigation({context:()=>({search:lastSearch||navigationSearch,traffic:traffic?.data(),location:gpsDenied?null:deviceLocation,busy:Boolean(active)}),getFix:async signal=>{if(!signal.aborted&&!gpsDenied&&deviceLocation&&Date.now()-deviceLocation.at<5000&&Number.isFinite(deviceLocation.accuracy)&&deviceLocation.accuracy<=80)return deviceLocation;await locate(signal,{maximumAge:10000});return deviceLocation;},closePanels:()=>{if(driving?.active)driving.exit();journeyTools.close();closeStation();showResults(false);setTerrainOpen(false);setWeatherOpen(false);}});
+traffic=createTraffic({map,L:window.L,keys:personalKeys,context:()=>({search:lastSearch||navigationSearch,location:gpsDenied?null:deviceLocation,line:navigation?.getLine()||lastSearch?.line||navigationSearch?.line,center:map?{lat:map.getCenter().lat,lon:map.getCenter().lng}:null}),onData:data=>navigation?.setTraffic(data),focusReport:p=>{if(navigation?.active)navigation.focusReport(p);else map?.setView([p.lat,p.lon],16,{animate:false});}});
 $('navigate-route').addEventListener('click',()=>navigation.route());$('terrain-navigate').addEventListener('click',()=>navigation.route());navigation.refresh();
 if('serviceWorker' in navigator&&window.isSecureContext)navigator.serviceWorker.register('./sw.js').catch(()=>{});
 

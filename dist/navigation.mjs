@@ -1,6 +1,6 @@
-import {fetchNavigation,navigationProgress,freshNavigationFix,maneuverDistance} from './navigation-core.mjs?v=3.4';
-import {createNavigationMap} from './navigation-map.mjs?v=3.4';
-import {navigationUrl} from './core.mjs?v=3.4';
+import {fetchNavigation,navigationProgress,freshNavigationFix,maneuverDistance} from './navigation-core.mjs?v=3.5';
+import {createNavigationMap} from './navigation-map.mjs?v=3.5';
+import {navigationUrl} from './core.mjs?v=3.5';
 
 export function createNavigation({context,getFix,closePanels}){
  const $=id=>document.getElementById(id);
@@ -45,7 +45,7 @@ export function createNavigation({context,getFix,closePanels}){
   $('navigation').hidden=false;document.body.classList.add('navigation-mode');$('nav-destination').textContent=label;$('nav-voice').disabled=!globalThis.speechSynthesis;$('nav-voice').setAttribute('aria-pressed','false');$('nav-voice').textContent='♪ Zëri';$('nav-follow').setAttribute('aria-pressed','true');$('nav-3d').disabled=false;$('nav-3d').textContent='3D';$('nav-3d').setAttribute('aria-pressed','true');$('nav-retry').hidden=true;
   $('nav-external').href=navigationUrl({point:target},'waze');$('nav-remaining').textContent='—';$('nav-time').textContent='—';turn('Po marr vendndodhjen…','◎');hint('Lejo GPS-in për të nisur navigimin.');
   view=createNavigationMap($('navigation-map'),{onDrag:()=>{follow=false;$('nav-follow').setAttribute('aria-pressed','false');},changed:mode=>{if(!active)return;$('nav-map-note').textContent=mode==='3d'?'OpenFreeMap · 3D sipas të dhënave':mode==='2d'?'Pamje 2D · 3D nuk u ngarkua':'Harta nuk u ngarkua. Udhëzimet mbeten në ekran.';if(mode!=='3d'){$('nav-3d').disabled=true;$('nav-3d').textContent='2D';$('nav-3d').setAttribute('aria-pressed','false');}}});
-  awake();$('nav-stop').focus({preventScroll:true});const current=new AbortController();controller=current;
+  view?.setTraffic(context().traffic||null);awake();$('nav-stop').focus({preventScroll:true});const current=new AbortController();controller=current;
   try{const fix=await getFix(current.signal);if(!active||token!==generation||current.signal.aborted)return;if(!freshNavigationFix(fix))throw Error('GPS-i nuk është mjaftueshëm i saktë.');view?.position(fix,true);await calculate(fix.point);}
   catch(error){if(!active||token!==generation||current.signal.aborted)return;const search=context().search,start=search?.start||search?.center;
    if(start)await calculate(start,{manual:true});else{turn('GPS-i nuk është i disponueshëm','◎');hint('Lejo vendndodhjen ose krijo një itinerar me nisje manuale.');$('nav-retry').hidden=false;}}
@@ -60,5 +60,5 @@ export function createNavigation({context,getFix,closePanels}){
  document.addEventListener('visibilitychange',()=>{if(!active)return;if(document.hidden){quiet();hint('Navigimi është pezull në sfond.');}else{awake();lastAt=0;position(context().location);}});
  const timer=setInterval(()=>{if(active&&!document.hidden&&!preview&&!arrived&&!needsRoute&&!freshNavigationFix(context().location)){globalThis.speechSynthesis?.cancel();$('nav-remaining').textContent='—';$('nav-time').textContent='—';turn('Po pres sinjal të saktë GPS','◎');hint('Udhëzimet janë pezull derisa të merret pozicion aktual.');}},2000);
  window.addEventListener('pagehide',()=>{stop();clearInterval(timer);});
- return {start,stop,position,get active(){return active;},refresh(){const search=context().search;$('navigate-route').hidden=!search||search.requestMode==='near';$('navigate-route').disabled=context().busy;document.body.classList.toggle('navigation-ready',Boolean(search&&search.requestMode!=='near'));},route(){const search=context().search;if(search?.center)start(search.center,search.requestMode==='route'?'Destinacioni i itinerarit':'Vendi i zgjedhur');}};
+ return {start,stop,position,setTraffic:data=>view?.setTraffic(data),getLine:()=>route?.line||null,focusReport(p){follow=false;$('nav-follow').setAttribute('aria-pressed','false');view?.focus(p);},get active(){return active;},refresh(){const search=context().search;$('navigate-route').hidden=!search||search.requestMode==='near';$('navigate-route').disabled=context().busy;document.body.classList.toggle('navigation-ready',Boolean(search&&search.requestMode!=='near'));},route(){const search=context().search;if(search?.center)start(search.center,search.requestMode==='route'?'Destinacioni i itinerarit':'Vendi i zgjedhur');}};
 }

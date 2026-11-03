@@ -1,5 +1,5 @@
-import {distance,routeProjection} from './core.mjs?v=3.4';
-import {currentOperating} from './operating.mjs?v=3.4';
+import {distance,routeProjection} from './core.mjs?v=3.5';
+import {currentOperating} from './operating.mjs?v=3.5';
 
 // Discovery ranking only. Road distance and ETA are requested separately.
 export function drivingChoices(stations,{origin=null,line=null,fast=false,now=Date.now()}={}){

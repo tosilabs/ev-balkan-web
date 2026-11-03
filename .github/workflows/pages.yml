@@ -105,6 +105,14 @@ jobs:
         if: ${{ !cancelled() && steps.chromium.outcome == 'success' }}
         timeout-minutes: 3
         run: node scripts/navigation-browser-check.mjs
+      - name: Check personal Waze reports and 3D layers
+        if: ${{ !cancelled() && steps.chromium.outcome == 'success' }}
+        timeout-minutes: 3
+        run: node scripts/traffic-browser-check.mjs
+      - name: Check OpenWeb Ninja preflight without credentials
+        if: ${{ !cancelled() && steps.chromium.outcome == 'success' }}
+        continue-on-error: true
+        run: node scripts/openwebninja-cors-check.mjs
       - name: Verify real OSRM navigation steps in browser
         if: ${{ !cancelled() && steps.chromium.outcome == 'success' }}
         timeout-minutes: 1

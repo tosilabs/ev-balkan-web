@@ -1,6 +1,4 @@
-const STORAGE_KEY='udhembare-api-ninjas-vault-v1';
 const ITERATIONS=600000;
-const AAD=new TextEncoder().encode('udhembare:api-ninjas:v1');
 const encode=bytes=>btoa(String.fromCharCode(...bytes));
 function decode(value,size){if(typeof value!=='string'||value.length>1000||!/^[A-Za-z0-9+/]+={0,2}$/.test(value))throw Error('record');const bytes=Uint8Array.from(atob(value),c=>c.charCodeAt(0));if(size&&bytes.length!==size)throw Error('record');return bytes;}
 function validKey(value){if(typeof value!=='string'||!/^[\x21-\x7e]{16,512}$/.test(value))throw Error('Vendos një çelës API të vlefshëm, pa hapësira.');return value;}
@@ -16,14 +14,17 @@ async function derive(password,salt,crypto){
  try{const material=await crypto.subtle.importKey('raw',input,'PBKDF2',false,['deriveKey']);return await crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:ITERATIONS,hash:'SHA-256'},material,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);}
  finally{input.fill(0);}
 }
-export function createKeyVault({storage,crypto=globalThis.crypto}={}){
+export function createKeyVault({storage,crypto=globalThis.crypto,provider='api-ninjas',onLock=()=>{}}={}){
+ if(!['api-ninjas','openwebninja-waze'].includes(provider))throw Error('Ofrues i panjohur.');
+ const STORAGE_KEY=`udhembare-${provider}-vault-v1`,AAD=new TextEncoder().encode(`udhembare:${provider}:v1`);
  let unlockedKey=null,generation=0;
  const read=()=>{try{return storage.getItem(STORAGE_KEY);}catch{throw Error('Telefoni nuk lejon leximin e ruajtjes lokale.');}};
- function lock(){generation++;unlockedKey=null;}
+ function lock(){generation++;unlockedKey=null;onLock();}
  function checkCrypto(){if(!crypto?.subtle||!crypto?.getRandomValues)throw Error('Ruajtja e enkriptuar kërkon HTTPS dhe një shfletues me Web Crypto.');}
  function status(){const raw=read();let valid=true;if(raw!==null)try{recordFrom(raw);}catch{valid=false;}return {saved:raw!==null,valid,unlocked:unlockedKey!==null,supported:Boolean(crypto?.subtle&&crypto?.getRandomValues)};}
  function current(token,raw){if(token!==generation||raw!==undefined&&read()!==raw)throw Error('Veprimi u anulua. Provo përsëri.');}
  return {status,lock,
+  async withKey(callback){if(!unlockedKey)throw Error('Zhblloko çelësin e ofruesit para kërkimit.');const token=generation,result=await callback(unlockedKey);current(token);return result;},
   async save(apiKey,password){lock();const token=generation;checkCrypto();apiKey=validKey(apiKey.trim());validPassword(password);const original=read();
    const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12)),key=await derive(password,salt,crypto);
    const input=new TextEncoder().encode(apiKey);let encrypted;

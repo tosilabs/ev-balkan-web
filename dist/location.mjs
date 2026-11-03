@@ -1,4 +1,4 @@
-import {point} from './core.mjs?v=3.4';
+import {point} from './core.mjs?v=3.5';
 export function locationFix(position,now=Date.now()){
  const p=point(position.coords.latitude,position.coords.longitude),accuracy=position.coords.accuracy;
  const motion={};if(Number.isFinite(position.coords.heading)&&position.coords.heading>=0&&position.coords.heading<360)motion.heading=position.coords.heading;if(Number.isFinite(position.coords.speed)&&position.coords.speed>=0)motion.speed=position.coords.speed;

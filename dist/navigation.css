@@ -30,3 +30,7 @@
 .nav-guidance p{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
 
 .navigation-mode .map-app > :not(#navigation){visibility:hidden!important;pointer-events:none!important}
+
+.navigation .nav-traffic-alert{position:absolute;top:calc(max(12px,env(safe-area-inset-top)) + 140px);left:12px;right:138px;border:1px solid #d9c18b;background:#fff5dc;color:#69491b;font-size:12px;line-height:1.4;padding:10px 12px;min-height:48px;max-width:420px;border-radius:14px;box-shadow:0 3px 15px #173e6b20;cursor:pointer}
+@media(min-width:760px) and (max-width:1100px){.nav-tools{top:154px;grid-auto-flow:row}}
+@media(max-height:550px) and (orientation:landscape){.navigation .nav-traffic-alert{top:auto;bottom:16px;left:12px;right:auto;width:43%;max-width:none}.nav-tools{gap:5px}.nav-tools button{padding:8px;min-width:45px}}

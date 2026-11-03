@@ -1,7 +1,7 @@
-import {distance,navigationUrl} from './core.mjs?v=3.4';
-import {drivingChoices} from './driving-core.mjs?v=3.4';
-import {stationTravel,formatTravel} from './travel.mjs?v=3.4';
-import {currentOperating} from './operating.mjs?v=3.4';
+import {distance,navigationUrl} from './core.mjs?v=3.5';
+import {drivingChoices} from './driving-core.mjs?v=3.5';
+import {stationTravel,formatTravel} from './travel.mjs?v=3.5';
+import {currentOperating} from './operating.mjs?v=3.5';
 
 export function createDriving({context,closePanels,search,setupRoute,focusLocation,focusStation,share,notice,navigate}){
  const $=id=>document.getElementById(id);
