@@ -234,3 +234,7 @@ Ka shenja të vogla në Leaflet, shtresa në MapLibre 3D dhe tregues të raporti
 CORS duhet lejuar nga ofruesi për origjinën e faqes dhe header-in `x-api-key`. Prova OPTIONS në CI nuk përdor çelës dhe nuk garanton përgjigjen e autentikuar. Në dështim rrjeti/CORS shfaqet gabim i qartë; nuk përdoret proxy publik për të përcjellë çelësin. Dërgimi real i të dhënave kërkon çelësin/abonimin e përdoruesit dhe e bën të njohur zonën e kërkuar për OpenWeb Ninja. Mbulimi real në Ballkan nuk është verifikuar pa kredencialet personale. API Ninjas ende nuk është lidhur me kërkimin.
 
 Burime: [OpenWeb Ninja Waze](https://www.openwebninja.com/api/waze), [dokumentacioni](https://www.openwebninja.com/api/waze/docs). Testet mbulojnë ndarjen e çelësave, kufijtë lokalë, auth/CORS të simuluar, strukturën/freskinë e të dhënave, shenjat/polylines, filtrat dhe shtresën 3D.
+
+## Android Auto · versioni native testues
+
+Kodi Android gjendet te [android/README.md](android/README.md). Përfshin kërkim me regjistrin publik pa API key, pika/listë në hartën e Android Auto dhe hapje në Waze/Google Maps. APK-ja testohet dhe publikohet veçmas nga faqja web, te [Releases](https://github.com/tosilabs/ev-balkan-web/releases). Për ta provuar në veturë, aplikacionet Car App Library kërkojnë instalim përmes një burimi të besuar, p.sh. Google Play Internal App Sharing; instalimi i drejtpërdrejtë i APK-së nuk mjafton.
