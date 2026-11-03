@@ -1,5 +1,5 @@
-import {sampleRoute} from './terrain.mjs?v=3.3';
-import {requestJson} from './services.mjs?v=3.3';
+import {sampleRoute} from './terrain.mjs?v=3.4';
+import {requestJson} from './services.mjs?v=3.4';
 const variables=['temperature_2m','precipitation','precipitation_probability','snowfall','weather_code','visibility','wind_speed_10m','wind_gusts_10m','is_day'];
 const cache=new Map();
 const number=(x,min,max)=>typeof x==='number'&&Number.isFinite(x)&&x>=min&&x<=max?x:null;

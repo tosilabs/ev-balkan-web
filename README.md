@@ -204,3 +204,17 @@ Pas rihapjes çelësi është i bllokuar. Bllokohet edhe në sfond, me butonin p
 Ky modul nuk dërgon çelësin në rrjet, GitHub, logje ose historik. Ruajtja është veçmas te `udhembare-api-ninjas-vault-v1`; pastrimi i të dhënave të faqes e heq. Fjalëkalimet e dobëta mbeten të cenueshme nga hamendësimi offline. Pasi zhbllokohet, kod keqdashës që ekzekutohet në të njëjtën faqe mund ta kapë çelësin ose fjalëkalimin; kjo nuk është mbrojtje kundër një faqeje/shfletuesi të komprometuar dhe nuk garanton fshirje fizike të strings nga memoria JavaScript.
 
 **Nuk aktivizohet ende kërkimi API Ninjas** dhe çelësi i zhbllokuar nuk i shton të dhëna hartës. Testi CI i preflight-it përdor OPTIONS pa çelës dhe pa marrje rezultatesh; kjo nuk provon një përgjigje të autentikuar ose mbulimin. Lidhja reale do të kërkojë respektim të CORS dhe planit/licencës. Burimet ekzistuese publike vazhdojnë të punojnë. Serveri Cloudflare mbetet alternativë e përgatitur, e paaktivizuar.
+
+## Navigim në faqe dhe pamje 3D · 3.4
+
+Nga stacioni zgjidh **Navigo në Udhëmbarë · 3D**; nga itinerari/vendi i kërkuar përdor **Nis navigimin · 3D**. Ky buton gjendet edhe te profili i rrugës. Modaliteti i vozitjes ka **Nisu · 3D**, me lidhjet Waze/myAudi të ruajtura si alternativa.
+
+Navigimi kërkon rrugë të re automobilistike nga pozicioni aktual drejt destinacionit me `steps=true` dhe gjeometri GeoJSON nga OSRM. Udhëzimet përkthehen në shqip nga manovrat e ofruesit; nuk shpiken kthesa kur përgjigjja nuk ka hapa. Ka udhëzim të radhës, largësi deri te kthesa, kilometra dhe kohë të mbetur, mbërritje të përafërt dhe zë opsional përmes shfletuesit. Zëri/prononcimi shqip varen nga zërat e pajisjes.
+
+Harta e navigimit është instancë e veçantë MapLibre, me pitch 55°, kamerë sipas kursit të GPS-it ose segmentit të rrugës, ndjekje dhe kalim 2D/3D. Ndërtesat ngrihen vetëm kur stili/burimi OpenFreeMap ka shtresën dhe lartësitë përkatëse. Nuk është hartë fotorealiste ose model i ri 3D i maleve. Pa WebGL ose kur stili nuk ngarkohet në kohë, hapet harta Leaflet/OSM 2D.
+
+Udhëzimi aktiv kërkon GPS brenda 15 sekondave me saktësi ≤80 m. GPS i vjetër/i pasaktë pezullon udhëzimet dhe vlerat e mbetura. Devijimi mbi maksimumin mes 80 m dhe dyfishit të pasigurisë së GPS-it kërkon të paktën tri matje gjatë 5 sekondave; rillogaritja automatike kufizohet në një për 30 sekonda. Dështimi nuk vazhdon me udhëzime të vjetra; ka riprovim dhe Waze. Mbërritja kërkon dy matje afër fundit dhe saktësi ≤50 m. Shenja e nisjes në parapamjen manuale nuk quhet vendndodhje aktuale.
+
+Përdorimi aktiv kërkon faqen në plan të parë dhe internet për harta/rillogaritje. Nuk ka trafik aktual, udhëzim korsish ose kufij shpejtësie. Koha e mbetur zvogëlohet sipas progresit gjeometrik mbi kohëzgjatjen OSRM; nuk është parashikim sipas trafikut. Ky version navigon drejt destinacionit ose stacionit të zgjedhur; ndalesat e planit të baterisë nuk transferohen automatikisht dhe rillogaritja nuk verifikon sërish rezervën e baterisë. Nuk ruhet gjurma e GPS-it nga navigimi. API Ninjas mbetet i palidhur me kërkimin.
+
+Testet mbulojnë manovrat, gjeometrinë, rrethrrotullimet, mbërritjen, kryqëzimet e përsëritura, mungesën e hapave, GPS të vjetër dhe prova shfletuesi për kamerën reale MapLibre, 2D rezervë, rillogaritje, gabime, nisje manuale dhe pamje telefon/horizontal.

@@ -1,4 +1,4 @@
-import {locationInfo,socketCurrent,bestClass,webUrl} from './details.mjs?v=3.3';
+import {locationInfo,socketCurrent,bestClass,webUrl} from './details.mjs?v=3.4';
 export function point(lat,lon){
   if(lat==null||lon==null||lat===''||lon==='')throw Error('Koordinata të pavlefshme.');
   lat=Number(lat);lon=Number(lon);

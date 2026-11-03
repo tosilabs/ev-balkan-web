@@ -101,6 +101,13 @@ jobs:
       - name: Check API Ninjas preflight without credentials
         continue-on-error: true
         run: node scripts/api-ninjas-cors-check.mjs
+      - name: Check 3D navigation, GPS and rerouting
+        if: ${{ !cancelled() && steps.chromium.outcome == 'success' }}
+        timeout-minutes: 3
+        run: node scripts/navigation-browser-check.mjs
+      - name: Verify real OSRM navigation steps in browser
+        timeout-minutes: 1
+        run: node scripts/navigation-live-check.mjs
       - name: Verify current public weather APIs in browser
         timeout-minutes: 1
         run: node scripts/weather-smoke.mjs

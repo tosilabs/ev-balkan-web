@@ -1,4 +1,4 @@
-import {compatiblePower,energyForKm,chargingMinutes,parseTariff,sessionCost,terrainBetween,weatherBetween} from './energy.mjs?v=3.3';
+import {compatiblePower,energyForKm,chargingMinutes,parseTariff,sessionCost,terrainBetween,weatherBetween} from './energy.mjs?v=3.4';
 export function planningCandidates(stations,p,{limit=16,excluded=[],isOffline=()=>false}={}){
  const usable=stations.filter(s=>!excluded.includes(s.id)&&!isOffline(s)&&Number.isFinite(s.routePosition)&&compatiblePower(s,p)).sort((a,b)=>a.routePosition-b.routePosition);
  if(usable.length<=limit)return usable;

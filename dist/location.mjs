@@ -1,7 +1,8 @@
-import {point} from './core.mjs?v=3.3';
+import {point} from './core.mjs?v=3.4';
 export function locationFix(position,now=Date.now()){
  const p=point(position.coords.latitude,position.coords.longitude),accuracy=position.coords.accuracy;
- return {point:p,accuracy:typeof accuracy==='number'&&Number.isFinite(accuracy)&&accuracy>=0?accuracy:null,at:typeof position.timestamp==='number'&&Number.isFinite(position.timestamp)&&position.timestamp>0?Math.min(now,position.timestamp):now};
+ const motion={};if(Number.isFinite(position.coords.heading)&&position.coords.heading>=0&&position.coords.heading<360)motion.heading=position.coords.heading;if(Number.isFinite(position.coords.speed)&&position.coords.speed>=0)motion.speed=position.coords.speed;
+ return {...motion,point:p,accuracy:typeof accuracy==='number'&&Number.isFinite(accuracy)&&accuracy>=0?accuracy:null,at:typeof position.timestamp==='number'&&Number.isFinite(position.timestamp)&&position.timestamp>0?Math.min(now,position.timestamp):now};
 }
 // A separate layer preserves the device marker when search results and routes change.
 export function createLocationLayer(map,L){

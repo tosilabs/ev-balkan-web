@@ -1,9 +1,9 @@
-import {distance,navigationUrl} from './core.mjs?v=3.3';
-import {drivingChoices} from './driving-core.mjs?v=3.3';
-import {stationTravel,formatTravel} from './travel.mjs?v=3.3';
-import {currentOperating} from './operating.mjs?v=3.3';
+import {distance,navigationUrl} from './core.mjs?v=3.4';
+import {drivingChoices} from './driving-core.mjs?v=3.4';
+import {stationTravel,formatTravel} from './travel.mjs?v=3.4';
+import {currentOperating} from './operating.mjs?v=3.4';
 
-export function createDriving({context,closePanels,search,setupRoute,focusLocation,focusStation,share,notice}){
+export function createDriving({context,closePanels,search,setupRoute,focusLocation,focusStation,share,notice,navigate}){
  const $=id=>document.getElementById(id);
  let enabled=false,kind='near',choices=[],selected=null,controller=null,travelAt=0,travelOrigin=null,wake=null,follow=true;
  function origin(){const state=context();return state.location&&Date.now()-state.location.at<30000?{point:state.location.point,gps:true}:state.search?.start||state.search?.center?{point:state.search.start||state.search.center,gps:false}:null;}
@@ -55,6 +55,7 @@ export function createDriving({context,closePanels,search,setupRoute,focusLocati
  for(const id of ['near','fast'])$('drive-'+id).addEventListener('click',()=>{kind=id;selected=null;search(id);refresh();});
  $('drive-route').addEventListener('click',()=>{if(context().search?.line){kind='route';selected=null;refresh();}else{exit();setupRoute();}});
  $('drive-next').addEventListener('click',()=>{const index=choices.findIndex(c=>c.station.id===selected);select(choices[(index+1)%choices.length]);});
+ $('drive-own-navigate').addEventListener('click',()=>{const item=choices.find(c=>c.station.id===selected);if(item)navigate(item.station);});
  $('drive-audi').addEventListener('click',()=>{const item=choices.find(c=>c.station.id===selected);if(item)share(item.station);});
  $('route-weather-alert').addEventListener('click',()=>{if(enabled)exit();},{capture:true});
  $('drive-manual').addEventListener('click',()=>{exit();$('search-open').click();});
