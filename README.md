@@ -190,3 +190,7 @@ Menu më e qartë, filtra shtesë të grupuar, kontrolle më të mëdha dhe për
 ## Modaliteti i vozitjes · 3.2
 
 Menuja `⋯` → **Modaliteti i vozitjes** hap një pamje të qetë, me kartë të vetme, GPS, kohë rrugore, shkurtore CCS të shpejtë dhe navigim Waze/Audi. `Dil ×` rikthen pamjen e plotë. [Funksionet dhe shqyrtimi i EMPower, scraper-it dhe Powerly](docs/MODALITETI_VOZITJES_3_2.md).
+
+## Çelësat e API-ve
+
+Çelësat privatë nuk futen në frontend ose te artifact-i i GitHub Pages. [Ndërmjetësi Cloudflare dhe udhëzimet për ruajtjen si Secret](backend/README.md) janë përgatitur me kufij kuote dhe teste. Worker-i dhe lidhja API Ninjas janë ende të paaktivizuara; faqja aktuale vazhdon me burimet publike.

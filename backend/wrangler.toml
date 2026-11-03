@@ -1,0 +1,24 @@
+name = "udhembare-api"
+main = "api-worker.mjs"
+compatibility_date = "2026-11-03"
+workers_dev = true
+preview_urls = false
+
+# Public configuration only. The actual key is a Cloudflare encrypted Secret.
+[vars]
+API_ENABLED = "false"
+ALLOWED_ORIGINS = "https://tosilabs.github.io"
+MONTHLY_BUDGET = "2000"
+HOURLY_BUDGET = "60"
+CLIENT_PER_MINUTE = "6"
+
+[[durable_objects.bindings]]
+name = "API_QUOTA"
+class_name = "ApiQuota"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["ApiQuota"]
+
+[observability]
+enabled = false

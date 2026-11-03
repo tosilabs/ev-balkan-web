@@ -6,3 +6,10 @@ dist/data/
 .source-cache/
 __pycache__/
 *.pyc
+
+# Runtime secrets must never be committed or copied into the Pages artifact.
+.env
+.env.*
+.dev.vars
+.dev.vars.*
+.wrangler/
