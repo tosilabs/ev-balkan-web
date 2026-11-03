@@ -97,7 +97,7 @@ try{
  await page.locator('#results-close').click();
  await searchPlace(page,'route');
  await page.waitForFunction(()=>document.querySelector('#terrain-status').textContent.includes('100%'),null,{timeout:20000});
- assert.equal(await page.locator('#terrain-panel').isVisible(),true);
+ assert.equal(await page.locator('#terrain-panel').isVisible(),false,'Route must keep map clear until profile is requested');await page.locator('#layers-open').click();await page.locator('#terrain-open').click();assert.equal(await page.locator('#terrain-panel').isVisible(),true);
  assert.ok(await page.locator('.terrain-road.terrain-high').count()>0);assert.ok(await page.locator('.terrain-road.terrain-down').count()>0);assert.equal(await page.locator('.elevation-chart').count(),1);
  await page.locator('#terrain-chart input[type=range]').evaluate(el=>{el.value='10';el.dispatchEvent(new Event('input',{bubbles:true}));});assert.match(await page.locator('.profile-readout').innerText(),/km.*m.*%/);
  await page.screenshot({path:'browser-results/route-elevation-phone.png'});
@@ -107,7 +107,7 @@ try{
  assert.equal(await page.locator('.user-location-marker').count(),1,'New route must preserve own position');
 
  assert.equal(await page.locator('#terrain-panel').isVisible(),false,'Weather and elevation panels must not overlap');
- assert.ok(await page.locator('.weather-marker').count()>=2);assert.match(await page.locator('#weather-summary').innerText(),/Jo alarme zyrtare/);assert.ok(await page.locator('.weather-advisory').count()>0);
+ await page.locator('#weather-pins').check();assert.ok(await page.locator('.weather-marker').count()>=2);assert.match(await page.locator('#weather-summary').innerText(),/Jo alarme zyrtare/);assert.ok(await page.locator('.weather-advisory').count()>0);
  await page.locator('#radar-toggle').check();await page.locator('#radar-controls').waitFor();assert.match(await page.locator('#radar-status').innerText(),/Pamja:/);
  await page.waitForFunction(()=>[...document.querySelectorAll('.leaflet-radarRain-pane img')].some(img=>img.complete&&img.naturalWidth>0));
  assert.ok(radarTileRequests>0);assert.match(await page.locator('.leaflet-radarRain-pane img').first().getAttribute('src'),/5158c2341ca7/);
@@ -120,9 +120,9 @@ try{
  const callsBeforeReplay=elevationCalls;
  await page.locator('#more-open').click();await page.locator('#history-open').click();assert.ok(await page.locator('.history-item').count()>=2);
  await page.locator('.history-item>button:first-child').filter({hasText:'Itinerar'}).first().click();await waitSearch(page);
- assert.equal(elevationCalls,callsBeforeReplay,'Saved elevation should reopen without another DEM request');assert.match(await page.locator('#terrain-status').innerText(),/profil i ruajtur/);
- await page.locator('#terrain-close').click();await page.reload({waitUntil:'networkidle'});await waitSearch(page);
- await page.locator('#more-open').click();await page.locator('#history-open').click();await page.locator('.history-item>button:first-child').filter({hasText:'Itinerar'}).first().click();await waitSearch(page);assert.match(await page.locator('#terrain-status').innerText(),/profil i ruajtur/);assert.equal(elevationCalls,callsBeforeReplay);
+ assert.equal(elevationCalls,callsBeforeReplay,'Saved elevation should reopen without another DEM request');assert.match(await page.locator('#terrain-status').textContent(),/profil i ruajtur/);
+ await page.reload({waitUntil:'networkidle'});await waitSearch(page);
+ await page.locator('#more-open').click();await page.locator('#history-open').click();await page.locator('.history-item>button:first-child').filter({hasText:'Itinerar'}).first().click();await waitSearch(page);assert.match(await page.locator('#terrain-status').textContent(),/profil i ruajtur/);assert.equal(elevationCalls,callsBeforeReplay);
  await page.locator('#list-open').click();
  await page.getByRole('heading',{name:'Karikues përgjatë rrugës'}).waitFor();
  await page.getByRole('heading',{name:'Karikues prove'}).waitFor();
@@ -178,7 +178,7 @@ try{
  let liveCalls=0;await operatorPage.route('https://public.finescharging.com/v1/live.json',route=>{liveCalls++;return route.fulfill({json:{generated_at:new Date().toISOString(),locations:[{location_id:123,connectors:[{plug_type:'CCS Combo 2',max_power_kw:150,available:true,status:'Available'},{plug_type:'CCS Combo 2',max_power_kw:150,available:false,status:'Charging'}]},{location_id:124,connectors:[{plug_type:'CCS Combo 2',max_power_kw:150,available:false,status:'Offline'}]}]}});});
  await operatorPage.goto('http://127.0.0.1:8080/',{waitUntil:'networkidle'});await waitSearch(operatorPage);await operatorPage.locator('#list-open').click();
  await operatorPage.locator('.operating-status').filter({hasText:'Në punë'}).waitFor();
- await operatorPage.locator('#list-open').click();await operatorPage.locator('#active-toggle').click();assert.equal(await operatorPage.locator('#active-toggle').getAttribute('aria-pressed'),'true');await operatorPage.locator('#list-open').click();assert.equal(await operatorPage.locator('.station-card').count(),1);
+ await operatorPage.locator('#list-open').click();await operatorPage.locator('#layers-open').click();await operatorPage.locator('#active-toggle').click();await operatorPage.locator('[data-close=layers-dialog]').click();assert.equal(await operatorPage.locator('#active-toggle').getAttribute('aria-pressed'),'true');await operatorPage.locator('#list-open').click();assert.equal(await operatorPage.locator('.station-card').count(),1);
  await operatorPage.locator('.open-station').first().click();await operatorPage.locator('.station-extra>summary').click();await operatorPage.locator('.station-more summary').first().click();await operatorPage.getByRole('button',{name:'Kontrollo disponueshmërinë',exact:true}).click();
  await operatorPage.getByText(/1 nga 2 lidhës të lirë/).waitFor();await operatorPage.getByRole('button',{name:'Kontrollo përsëri',exact:true}).click();assert.equal(liveCalls,1,'Live API must respect two minute cache');
  await operatorPage.evaluate(()=>{const original=Date.now;Date.now=()=>original()+11*60000;document.dispatchEvent(new Event('visibilitychange'));});await operatorPage.getByText('Status i pakonfirmuar',{exact:true}).waitFor();
@@ -220,7 +220,7 @@ try{
  assert.match(await deniedPage.locator('#origin').inputValue(),/^-?\d+\.\d+,-?\d+\.\d+$/);assert.equal(await deniedPage.locator('#tab-route').getAttribute('aria-selected'),'true');assert.equal(await deniedPage.locator('#destination').inputValue(),'42.1,21.5');
  await deniedPage.locator('#pick-destination').click();await deniedPage.locator('#map').click({position:{x:180,y:410}});await deniedPage.locator('#destination').waitFor();assert.equal(await deniedPage.locator('#tab-route').getAttribute('aria-selected'),'true');
  await deniedPage.screenshot({path:'browser-results/manual-origin-phone.png'});
- await deniedPage.locator('[data-close="search-dialog"]').click();await deniedPage.locator('#weather-open').click();await deniedPage.waitForFunction(()=>document.querySelector('#weather-status').textContent.includes('nuk u mor'),null,{timeout:20000});assert.equal(await deniedPage.locator('.weather-row').count(),0);assert.match(await deniedPage.locator('#route-weather-alert').textContent(),/pa të dhëna/);await deniedPage.locator('#weather-close').click();await deniedPage.locator('#search-open').click();
+ await deniedPage.locator('[data-close="search-dialog"]').click();await deniedPage.locator('#layers-open').click();await deniedPage.locator('#weather-open').click();await deniedPage.waitForFunction(()=>document.querySelector('#weather-status').textContent.includes('nuk u mor'),null,{timeout:20000});assert.equal(await deniedPage.locator('.weather-row').count(),0);assert.match(await deniedPage.locator('#route-weather-alert').textContent(),/pa të dhëna/);await deniedPage.locator('#weather-close').click();await deniedPage.locator('#search-open').click();
  await deniedPage.locator('[data-close="search-dialog"]').click();
  await deniedPage.locator('#list-open').click();await deniedPage.locator('.open-station').first().click();await deniedPage.locator('#station-panel').waitFor();
  await deniedPage.locator('#travel-manual').click();await deniedPage.locator('#travel-origin').fill('41.9981,21.4254');await deniedPage.getByRole('button',{name:'Llogarit udhëtimin'}).click();

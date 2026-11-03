@@ -1,4 +1,4 @@
-import {point,bounds,distance,routeProjection} from './core.mjs?v=3.5';
+import {point,bounds,distance,routeProjection} from './core.mjs?v=3.6';
 
 export const TRAFFIC_PROVIDER='openwebninja-waze';
 export const TRAFFIC_TTL=10*60000;

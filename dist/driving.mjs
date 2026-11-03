@@ -1,7 +1,8 @@
-import {distance,navigationUrl} from './core.mjs?v=3.5';
-import {drivingChoices} from './driving-core.mjs?v=3.5';
-import {stationTravel,formatTravel} from './travel.mjs?v=3.5';
-import {currentOperating} from './operating.mjs?v=3.5';
+import {createPageTimer} from './lifecycle.mjs?v=3.6';
+import {distance,navigationUrl} from './core.mjs?v=3.6';
+import {drivingChoices} from './driving-core.mjs?v=3.6';
+import {stationTravel,formatTravel} from './travel.mjs?v=3.6';
+import {currentOperating} from './operating.mjs?v=3.6';
 
 export function createDriving({context,closePanels,search,setupRoute,focusLocation,focusStation,share,notice,navigate}){
  const $=id=>document.getElementById(id);
@@ -61,8 +62,8 @@ export function createDriving({context,closePanels,search,setupRoute,focusLocati
  $('drive-manual').addEventListener('click',()=>{exit();$('search-open').click();});
  $('drive-follow').addEventListener('click',()=>{follow=true;focusLocation();$('drive-follow').setAttribute('aria-pressed','true');});
  document.addEventListener('visibilitychange',()=>{if(!enabled)return;if(document.hidden){wake?.release().catch(()=>{});wake=null;}else{keepAwake();refresh();}});
- const timer=setInterval(()=>{if(enabled&&!document.hidden)refresh();},30000);
- window.addEventListener('pagehide',()=>{clearInterval(timer);stopTravel();wake?.release().catch(()=>{});});
+ createPageTimer(()=>{if(enabled&&!document.hidden)refresh();},30000);
+ window.addEventListener('pagehide',()=>{stopTravel();wake?.release().catch(()=>{});});
  // Weather warnings retain one compact, readable map control in this mode.
  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&enabled&&!document.querySelector('dialog[open]'))exit();});
  try{if(localStorage.getItem('udhembare-driving')==='true')enter({restore:true});}catch{}

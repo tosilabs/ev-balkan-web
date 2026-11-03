@@ -1,4 +1,4 @@
-import {createKeyVault} from './key-vault.mjs?v=3.5';
+import {createKeyVault} from './key-vault.mjs?v=3.6';
 
 export function createKeyVaultUI(){
  const $=id=>document.getElementById(id),dialog=$('api-key-dialog');

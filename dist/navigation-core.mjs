@@ -1,5 +1,5 @@
-import {point,distance,routeProjection} from './core.mjs?v=3.5';
-import {requestJson} from './services.mjs?v=3.5';
+import {point,distance,routeProjection} from './core.mjs?v=3.6';
+import {requestJson} from './services.mjs?v=3.6';
 
 export function turnInstruction(maneuver,name=''){
  const type=maneuver?.type,modifier=maneuver?.modifier||'',road=String(name||'').slice(0,120);

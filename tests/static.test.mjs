@@ -6,7 +6,7 @@ const app=readFileSync(new URL('../dist/app.mjs',import.meta.url),'utf8');
 test('Every DOM id referenced by the app exists exactly once',()=>{
   const ids=[...html.matchAll(/\bid="([^"]+)"/g)].map(m=>m[1]);
   assert.equal(new Set(ids).size,ids.length,'Duplicate IDs in document');
-  const all=readFileSync(new URL('../dist/traffic.mjs',import.meta.url),'utf8')+'\n'+readFileSync(new URL('../dist/navigation.mjs',import.meta.url),'utf8')+'\n'+readFileSync(new URL('../dist/key-vault-ui.mjs',import.meta.url),'utf8')+'\n'+readFileSync(new URL('../dist/driving.mjs',import.meta.url),'utf8')+'\n'+app+'\n'+readFileSync(new URL('../dist/journey-ui.mjs',import.meta.url),'utf8')+'\n'+readFileSync(new URL('../dist/interface.mjs',import.meta.url),'utf8');
+  const all=readFileSync(new URL('../dist/interface.mjs',import.meta.url),'utf8')+'\n'+readFileSync(new URL('../dist/traffic.mjs',import.meta.url),'utf8')+'\n'+readFileSync(new URL('../dist/navigation.mjs',import.meta.url),'utf8')+'\n'+readFileSync(new URL('../dist/key-vault-ui.mjs',import.meta.url),'utf8')+'\n'+readFileSync(new URL('../dist/driving.mjs',import.meta.url),'utf8')+'\n'+app+'\n'+readFileSync(new URL('../dist/journey-ui.mjs',import.meta.url),'utf8')+'\n'+readFileSync(new URL('../dist/interface.mjs',import.meta.url),'utf8');
   for(const match of all.matchAll(/\$\('([^']+)'\)/g))assert.ok(ids.includes(match[1]),`Missing DOM element ${match[1]}`);
 });
 test('PWA and linked local assets are packaged for subdirectory hosting',()=>{

@@ -1,4 +1,4 @@
-import {trafficFeatures} from './traffic-core.mjs?v=3.5';
+import {trafficFeatures} from './traffic-core.mjs?v=3.6';
 export function createNavigationMap(container,{changed=()=>{},onDrag=()=>{}}={}){
  let map=null,leaflet=null,routeLayer=null,marker=null,endMarker=null,timer=null,route=null,last=null,tilted=true,closed=false,ready=false,traffic=null,trafficLayer=null;
  const feature=coordinates=>({type:'Feature',properties:{},geometry:{type:'LineString',coordinates}});
@@ -33,7 +33,7 @@ export function createNavigationMap(container,{changed=()=>{},onDrag=()=>{}}={})
   if(!marker){const element=document.createElement('div');element.className='navigation-position';element.textContent='➤';element.setAttribute('aria-label','Vendndodhja ime');marker=new maplibregl.Marker({element,rotationAlignment:'map'}).setLngLat([p.lon,p.lat]).addTo(map);}
   else marker.setLngLat([p.lon,p.lat]);
   const element=marker.getElement();element.textContent=fix.preview?'○':'➤';element.setAttribute('aria-label',fix.preview?'Nisja e parapamjes':'Vendndodhja ime');element.classList.toggle('preview',Boolean(fix.preview));marker.setRotation(bearing-90);
-  if(follow)map.easeTo({center:[p.lon,p.lat],zoom:17,pitch:tilted?55:0,bearing:tilted?bearing:0,duration:matchMedia('(prefers-reduced-motion: reduce)').matches?0:450,padding:{top:100,bottom:170,left:0,right:0}});
+  if(follow)map.easeTo({center:[p.lon,p.lat],zoom:17,pitch:tilted?55:0,bearing:tilted?bearing:0,duration:matchMedia('(prefers-reduced-motion: reduce)').matches?0:450,padding:(()=>{const scale=Math.max(0,Math.min(1,(container.clientHeight-120)/270));return {top:100*scale,bottom:170*scale,left:0,right:0};})()});
  }
  try{if(!globalThis.maplibregl)throw Error('WebGL');
   map=new maplibregl.Map({container,style:'https://tiles.openfreemap.org/styles/positron',center:[21.43,42],zoom:15,pitch:55,bearing:0,attributionControl:true});
